@@ -14,10 +14,10 @@ library(dplyr); library(readr); library(purrr); library(readxl)
 library(lubridate); library(ggplot2); library(lfe); library(car)
 library(sf); library(parallel)
 
-#Full 2017 to 2019 landings data from Mariano
+#Full 2017 to 2019 landings data
 land <- read_excel("Data/landings_2017to2019.xlsx")
 
-#Full BE from Mariano
+#Full electronic logbook data
 be <- read_excel("Data/BE_2017to2019_allvessels.xlsx")
 
 be <- rename(be, Embarcacion=Embarcación, Matricula=Matrícula)
