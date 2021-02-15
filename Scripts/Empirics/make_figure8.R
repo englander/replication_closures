@@ -6,7 +6,7 @@ library(dplyr); library(ggplot2)
 library(sf);library(lubridate); library(glmnet)
 library(lfe); library(Formula); library(xtable)
 library(purrr); library(cowplot); library(tidyr)
-library(latex2exp)
+library(latex2exp); library(scales)
 
 options(scipen=999)
 options(lfe.threads=24)
@@ -425,15 +425,15 @@ singlePlot <- function(myvar, mytvar, ylab){
     scale_x_continuous("",breaks=seq(from=0,to=50,by=10),
                        labels = c("Inside","10 km","20 km","30 km","40 km","50 km")) +
     scale_y_continuous("",limits = c(myymin,myymax),
-                       breaks = scales::pretty_breaks(n=10),
-                       labels = scales::comma) + 
+                       breaks = breaks_pretty(n=10),
+                       labels = label_number(accuracy=1)) + 
     myThemeStuff + 
     ggtitle(tit) + 
     geom_errorbar(data=filter(usedf, tvar==mytvar), aes(x=bdist,ymin=lb,ymax=ub),width=0)
   
   
   
-  #If cfq or chbjuvs and not first plot of panel, plot relarea as hollow point but no legend
+  #If first plot of panel, plot relarea as hollow point but no legend
   if((mytvar!="lead"&mytvar!="lag2") & myvar=="chbjuv_scaled"){
     
     #Rename relarea so can refer to directly
@@ -464,8 +464,8 @@ singlePlot <- function(myvar, mytvar, ylab){
       scale_x_continuous("",breaks=seq(from=0,to=50,by=10),
                          labels = c("Inside","10 km","20 km","30 km","40 km","50 km")) + 
       scale_y_continuous(ylab,limits = c(myymin,myymax),
-                         breaks = scales::pretty_breaks(n=10),
-                         labels = scales::comma) + 
+                         breaks = breaks_pretty(n=10),
+                         labels = label_number(accuracy=1)) + 
       scale_shape_manual(values = c(16,2)) + 
       scale_color_manual(values = c("black","red")) + 
       myThemeStuff + 
@@ -509,12 +509,11 @@ paperFig <- function(myvar, ylab){
                    lag2plot, lag3plot, lag4plot, nrow=2, ncol=3, 
                    rel_widths = c(1.01,1,1))
   
-  ggsave(tbt, file=paste0("Output/Figures/",myvar,".png"),
+  ggsave(tbt, file=paste0("Output/Figures/fig8.png"),
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 
 
-paperFig("fig8", "Change in billions of juveniles caught")
-
+paperFig("chbjuv_scaled", "Change in billions of juveniles caught")
 
 sessionInfo()
