@@ -32,7 +32,7 @@ myThemeStuff <- theme(panel.background = element_rect(fill = NA),
 Sys.setenv(TZ='America/Lima')
 
 #Load full BE from PRODUCE where I have imputed size distribution of non-SNP observations
-#Created in correct_be*.R
+#Created in 3. correct_be.R
 load("Output/Data/pbe_imp.Rdata")
 
 fullbe <- rename(fullbe, calatime = FechaInicioCala)
