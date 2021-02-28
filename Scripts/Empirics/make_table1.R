@@ -306,7 +306,7 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
       add.to.row=list(
         pos = list(0,0,1,nrow(table),nrow(table)),
         command = c(
-          paste0("\\toprule & \\multicolumn{4}{c}{Dependent variable: asinh(tons caught)} \\\\ "),
+          paste0("\\toprule & \\multicolumn{4}{c}{Dependent variable: asinh(tons)} \\\\ "),
           "\\midrule & \\multicolumn{2}{c}{Actual closures} & \\multicolumn{2}{c}{Potential closures} \\\\",
           "\\midrule ",
           "\\midrule Fixed effects & & X & & X\\\\ ",

@@ -497,7 +497,7 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
       add.to.row=list(
         pos = list(0,1,nrow(table), nrow(table),nrow(table),nrow(table)),
         command = c(
-          paste0("\\toprule \\multicolumn{6}{c}{Dependent variable: asinh(JuvenilesCaught)} \\\\ \\midrule "),
+          paste0("\\toprule \\multicolumn{6}{c}{Dependent variable: asinh(juvenile catch)} \\\\ \\midrule "),
           " \\midrule ",
           " \\midrule Fixed effects & & X & & & X\\\\ ",
           "Length distribution & & & X & X & X \\\\",
