@@ -1,5 +1,3 @@
-#Estimate effect of policy on (corrected) BE juveniles caught
-
 rm(list=ls())
 setwd("C:/Users/englander/Documents/replication_closures")
 library(dplyr); library(ggplot2)
@@ -35,7 +33,7 @@ myThemeStuff <- theme(panel.background = element_blank(),
 #Peru time
 Sys.setenv(TZ='America/Lima')
 
-#Load rddf created in make_rddf.R
+#Load rddf created in 4. make_rddf.R
 load("Output/Data/rddf_10km_lead1tolag4_3dayrect.Rdata")
 
 rddf <- as.data.frame(rddf) %>% dplyr::select(-geometry)
