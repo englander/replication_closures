@@ -198,6 +198,11 @@ singlePlot <- function(myvar, mytvar, ylab, fignum, yticks){
     ggtitle(tit) + 
     geom_errorbar(data=filter(usedf, tvar==mytvar), aes(x=bdist,ymin=lb,ymax=ub),width=0)
 
+  #Add ylabel for leftmost plots
+  if(mytvar=="lead"|mytvar=="lag2"){
+    plot <- plot + scale_y_continuous(ylab,limits = c(myymin,myymax),
+                                      breaks = scales::pretty_breaks(n=10))
+  }
   
   return(plot)
 }
