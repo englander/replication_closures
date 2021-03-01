@@ -13,8 +13,9 @@ options(lfe.threads=24)
 
 `%not in%` <- function (x, table) is.na(match(x, table, nomatch=NA_integer_))
 
-myThemeStuff <- theme(panel.background = element_rect(fill = NA),
-                      panel.border = element_rect(fill = NA, color = "black"),
+myThemeStuff <- theme(panel.background = element_blank(),
+                      panel.border = element_blank(),
+                      axis.line = element_line(color = 'black'),
                       panel.grid.major = element_blank(),
                       panel.grid.minor = element_blank(),
                       axis.ticks = element_line(color = "gray5",size=.35),
@@ -23,10 +24,10 @@ myThemeStuff <- theme(panel.background = element_rect(fill = NA),
                       #axis.title.y.right = element_text(angle = 90,hjust=0),
                       axis.title.y = element_text(hjust = .5),
                       legend.key = element_blank(),
-                      plot.title = element_text(hjust = 0.5, size = 8), 
+                      plot.title = element_text(hjust = 0.5, size = 7.5), 
                       legend.text=element_text(size=6.5, family = "sans"),
                       legend.title = element_text(size=6.5, family = "sans"),
-                      plot.margin = unit(c(0,0,0,0),"in"),
+                      plot.margin = unit(c(0,0.04,0,0),"in"),
                       plot.tag = element_text(family = "sans", size = 9)
 )
 
