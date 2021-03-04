@@ -234,5 +234,72 @@ whichsuccess <- sapply(1:410, function(x){
 #Number of failures
 which(whichsuccess==0) %>% length()
 
+#Add success indicator to actualactive_in
+actualactive_in <- mutate(actualactive_in, synth = whichsuccess)
+
+#So proceed with synthetic control on actual closures synth() worked for
+
+#Create treated observations and control observations objects for pre and post period
+treatdf <- bind_rows(
+  filter(regdf, closuretype=='actual') %>% as.data.frame() %>% dplyr::select(-geometry),
+  filter(predf, closuretype=='actual') %>% as.data.frame() %>% dplyr::select(-geometry)
+) %>% 
+  #Actual closures that synthetic control worked on
+  filter(id %in% actualactive_in$id[actualactive_in$synth==1])
+
+controldf <- bind_rows(
+  filter(regdf, id %in% possiblecontrols$id)%>% as.data.frame() %>% dplyr::select(-geometry),
+  filter(predf, id %in% possiblecontrols$id)%>% as.data.frame() %>% dplyr::select(-geometry)
+) %>% 
+  mutate(id = as.character(id))
+
+#Second function. Given actual closure, return treated and weighted control asinhnummjuv
+#Also calculate tons caught for use when calculating reallocation in tons caught
+synthOuts <- function(synthobj){
+  
+  actualout <- filter(treatdf, id==synthobj$id) %>% 
+    mutate(nummjuv = numjuv/10^6, asinhnummjuv = asinh(numjuv/10^6),
+           asinhtons = asinh(tons)) %>% 
+    dplyr::select(bdist, tvar, nummjuv, asinhnummjuv, asinhtons, id) %>% 
+    rename(treatid = id)
+  
+  #Join weights onto controldf
+  controlout <- 
+    left_join(
+      controldf %>% mutate(id = as.integer(id), asinhtons = asinh(tons)),
+      data.frame(id = possiblecontrols$id, synthobj$solution.w),
+      by = 'id') %>% 
+    mutate(weightnummjuv = (numjuv/10^6)*w.weight,
+           weightasinhnummjuv = asinh(numjuv/10^6)*w.weight,
+           weightasinhtons = asinhtons*w.weight) %>% 
+    group_by(bdist, tvar) %>%
+    summarise(nummjuv = sum(weightnummjuv),
+              asinhnummjuv = sum(weightasinhnummjuv),
+              asinhtons = sum(weightasinhtons)) %>% ungroup() %>% 
+    mutate(treatid = synthobj$id)
+  
+  #Join controlout onto actualout so can substract asinhnummjuv
+  out <- left_join(
+    rename(actualout, asinhnummjuv_treat = asinhnummjuv, nummjuv_treat = nummjuv,
+           asinhtons_treat = asinhtons),
+    rename(controlout, asinhnummjuv_control = asinhnummjuv, nummjuv_control = nummjuv,
+           asinhtons_control = asinhtons),
+    by =c("bdist","tvar","treatid")
+  )
+  
+  
+  return(out)
+}
+
+#Apply synthOuts over elements of bigsynth (each actual closure id)
+synthdf <- map_df(1:length(bigsynthlist), function(x){
+  if(whichsuccess[x]==1){
+    synthOuts(bigsynthlist[[x]])
+  }
+})
+
+save(synthdf, file="Output/Data/synthdf.Rdata")
+
+
 sessionInfo()
 
