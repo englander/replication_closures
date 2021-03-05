@@ -171,3 +171,4 @@ sum(owndf$tons[owndf$fleettype=="medium"]) / sum(owndf$tons)
 
 sum(owndf$tons[owndf$fleettype=="singleton"]) / sum(owndf$tons)
 
+sessionInfo()
