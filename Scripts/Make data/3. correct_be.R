@@ -609,6 +609,10 @@ rm(cl, myCores)
 
 save(fullbe, file = "Output/Data/pbe_imp.Rdata")
 
+#What % of tons landed do SNP vessels represent?
+filter(fullbe, !is.na(stons)) %>% 
+  summarise(sum(betons)) %>% as.matrix() %>% as.numeric() / sum(fullbe$betons) #0.5645073
+
 #Calculate weighted average percentage juvenile in both datasets
 filter(fullbe, !is.na(bepj) & !is.na(numindivids)) %>% 
   mutate(weightpj = bepj*numindivids) %>% 
