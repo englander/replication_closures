@@ -1,4 +1,4 @@
-#This is the third script cleaning the BE data. It follows impute_size_be*.R
+#This is the third script cleaning the BE data. It follows 2. impute_size_be.R
 #In this script, I will calculate average trip-level pj in the BE data, 
 #calculate bepjhat--what pj should be to make individuals-weighted pj match landing level pj--
 #shift length distribution so that it implies bepjhat and calculate updated numindivids, numjuv etc. 
