@@ -37,7 +37,7 @@ myThemeStuff <- theme(panel.background = element_blank(),
 load("Output/Data/synthdf.Rdata")
 
 #Calculate mean outcome in each bin
-meanout <- mutate(synthout, synthdif = asinhnummjuv_treat - asinhnummjuv_control,
+meanout <- mutate(synthdf, synthdif = asinhnummjuv_treat - asinhnummjuv_control,
                   asinhtonsdif = asinhtons_treat - asinhtons_control, 
                   nummjuvdif = nummjuv_treat - nummjuv_control) %>%
   group_by(bdist, tvar) %>% 
@@ -129,7 +129,7 @@ paperFig("synthdif",
 ##Calculate total treatment effect
 #Calculate juv1 then calculate juv0. Then scale up both by ratio of nummjuv in data 
 #to total numjuv.
-toteffect_juv <- group_by(synthout, tvar, bdist) %>% 
+toteffect_juv <- group_by(synthdf, tvar, bdist) %>% 
   summarise(juv1_treat = sum(nummjuv_treat), juv1_control=sum(nummjuv_control)) %>%
   mutate(juv1 = juv1_treat + juv1_control) %>% 
   dplyr::select(-juv1_treat, -juv1_control) %>% ungroup() %>% 
@@ -165,7 +165,7 @@ tons1 <- sum(fullbe$betons[fullbe$Temporada!="2017-II" & fullbe$Temporada!="2019
                           !is.na(numindivids) & !is.na(bepjhat) & Temporada!="2017-II" & Temporada!="2019-II") %>%
     #Weight by number of individuals
     mutate(pjweighted = bepjhat*numindivids) %>%  
-    summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100) #0.09045436
+    summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100) #0.09045413
 
 
 #Avg weight of individual caught outside of treatment window
@@ -188,7 +188,7 @@ chindividsoutside <- -ctons/avgweightoutside
 chjuvsoutside <- chindividsoutside*avgpjoutside
 
 #Now can calculate change in juvenile catch due to policy, accounting for reallocation
-(chmjuvsstart <- changejuv + chjuvsoutside) #39805.58
+(chmjuvsstart <- changejuv + chjuvsoutside) #40106.27
 
 #How many juveniles are caught during my sample period in total?
 #F(1)*pj*individuals/VMS fishing obs
@@ -198,6 +198,6 @@ juv1 <- sum(fullbe$numjuv, na.rm=T) / 10^6
 juv0 <- juv1 - chmjuvsstart 
 
 #Then increase in juvenile catch as a percentage is 
-chmjuvsstart / juv0 #0.3943966
+chmjuvsstart / juv0 #0.398563
 
 sessionInfo()
