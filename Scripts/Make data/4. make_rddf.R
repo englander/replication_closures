@@ -1,3 +1,5 @@
+#Make potential closures
+
 rm(list=ls())
 setwd("C:/Users/englander/Documents/replication_closures/")
 library(dplyr); library(readxl); library(ggplot2)

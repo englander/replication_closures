@@ -1,6 +1,6 @@
 #Match PRODUCE Bitacora Electronica to PRODUCE landings data
 #This is the first script cleaning BE data. 
-#The next one is impute_size_be.R
+#The next one is 2. impute_size_be.R
 
 rm(list=ls())
 setwd("C:/Users/englander/Documents/replication_closures/")
@@ -350,3 +350,20 @@ filter(matchedbe, !is.na(landid)) %>%
   ungroup() %>% 
   summarise(sum(betons), sum(landtons))
 #12348424  / 11372978 #8.6% more tons reported in electronic logbook data
+
+#Average length of fishing trip is 20.3 hours
+distinct(matchedbe, betripid, FechaInicioFaenahat, FechaFinFaenahat) %>% 
+  mutate(triplength = difftime(FechaFinFaenahat, FechaInicioFaenahat, units = 'hours')) %>% 
+  dplyr::select(triplength) %>% mutate(triplength = as.numeric(triplength)) %>% 
+  as.matrix() %>% as.numeric() %>% mean()
+
+#Median length of fishing trip is 17.2 hours
+distinct(matchedbe, betripid, FechaInicioFaenahat, FechaFinFaenahat) %>% 
+  mutate(triplength = difftime(FechaFinFaenahat, FechaInicioFaenahat, units = 'hours')) %>% 
+  dplyr::select(triplength) %>% mutate(triplength = as.numeric(triplength)) %>% 
+  as.matrix() %>% as.numeric() %>% median()
+
+#Average number of sets per fishing trip is 2.2 and median is 2
+group_by(matchedbe, betripid, FechaInicioFaenahat, FechaFinFaenahat) %>% 
+  summarise(count = n()) %>% ungroup() %>% 
+  dplyr::select(count) %>% as.matrix() %>% as.numeric() %>% summary()

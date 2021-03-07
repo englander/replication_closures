@@ -1,7 +1,6 @@
-#This is the second script cleaning BE data. It follows match_be_landings*.R
-#I have dropped avgpropjuv_bin script
-#because need to first impute length distribution and calculate numjuv for each set, 
-#then calculate trip-level pj and compare to landing pj
+#This is the second script cleaning BE data. It follows 1. match_be_landings.R
+#Impute length distribution and calculate numjuv for each set, 
+#In next script, calculate trip-level pj and compare to landing pj and correct pj, length distribution, etc. if applicable
 
 rm(list=ls())
 setwd("C:/Users/englander/Documents/replication_closures/")

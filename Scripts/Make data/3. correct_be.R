@@ -1,4 +1,4 @@
-#This is the third script cleaning the BE data. It follows impute_size_be*.R
+#This is the third script cleaning the BE data. It follows 2. impute_size_be.R
 #In this script, I will calculate average trip-level pj in the BE data, 
 #calculate bepjhat--what pj should be to make individuals-weighted pj match landing level pj--
 #shift length distribution so that it implies bepjhat and calculate updated numindivids, numjuv etc. 
@@ -608,6 +608,10 @@ stopCluster(cl)
 rm(cl, myCores)
 
 save(fullbe, file = "Output/Data/pbe_imp.Rdata")
+
+#What % of tons landed do SNP vessels represent?
+filter(fullbe, !is.na(stons)) %>% 
+  summarise(sum(betons)) %>% as.matrix() %>% as.numeric() / sum(fullbe$betons) #0.5645073
 
 #Calculate weighted average percentage juvenile in both datasets
 filter(fullbe, !is.na(bepj) & !is.na(numindivids)) %>% 
