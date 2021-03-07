@@ -502,7 +502,7 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
           " \\midrule Fixed effects & & X & & & X\\\\ ",
           "Length distribution & & & X & X & X \\\\",
           "Other controls & & & & X & X \\\\",
-          "\\bottomrule \\multicolumn{6}{l}{\\multirow{2}{12cm}{Notes: All regressions have 35,113 observations. Dependent variable is the inverse hyperbolic sine of millions of juveniles caught. All regressions include bin $+$ treatment fraction $\\times$ bin variables for all bins, but only the coefficent on treatment fraction for the inside, day-before bin is displayed in this table. Standard errors clustered at level of two-week-of-sample by two-degree grid cell.}} \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ "
+          "\\bottomrule \\multicolumn{6}{l}{\\multirow{2}{12cm}{Notes: All regressions have 35,113 observations. Dependent variable is the inverse hyperbolic sine of millions of juveniles caught. All regressions estimate treatment effects for all 37 treatment bins, but only the coefficent on treatment fraction for the inside, day-before bin is displayed in this table. Standard errors clustered at level of two-week-of-sample by two-degree grid cell.}} \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ "
         )),
       type = "latex",file="Output/Tables/tableA1.tex")
 
