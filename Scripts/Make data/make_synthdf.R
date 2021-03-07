@@ -232,7 +232,7 @@ whichsuccess <- sapply(1:410, function(x){
 })
 
 #Number of failures
-which(whichsuccess==0) %>% length()
+which(whichsuccess==0) %>% length() #115
 
 #Add success indicator to actualactive_in
 actualactive_in <- mutate(actualactive_in, synth = whichsuccess)
