@@ -1,5 +1,3 @@
-#Estimate effect of policy on (corrected) BE juveniles caught
-
 rm(list=ls())
 setwd("C:/Users/englander/Documents/replication_closures")
 library(dplyr); library(ggplot2)
@@ -35,7 +33,7 @@ myThemeStuff <- theme(panel.background = element_blank(),
 #Peru time
 Sys.setenv(TZ='America/Lima')
 
-#Load rddf created in make_rddf.R
+#Load rddf created in 4. make_rddf.R
 load("Output/Data/rddf_10km_lead1tolag4_3dayrect.Rdata")
 
 rddf <- as.data.frame(rddf) %>% dplyr::select(-geometry)
@@ -69,7 +67,7 @@ rddf <- filter(rddf, !is.na(prop12hat))
 unique(rddf$twoweek_cellid_2p) %>% length() #255
 
 #How many observations
-nrow(rddf) #34,164 (so dropped 21 potential closures)
+nrow(rddf) #34,164
 
 #Given variable, interact it with bin indicators, giving
 interVars <- function(var){
@@ -272,7 +270,7 @@ logtab <- mutate(logtab, logjuv_ub = logjuv + logjuvse*qnorm(.975),
 #Join onto finaldf
 finaldf <- left_join(finaldf, logtab, by = 'bin')
 
-paperFig("logjuv","Log points change in juvenile catch, conditional on positive juvenile catch",
+paperFig("logjuv",TeX("$\\beta_{st}$ coefficient and 95% confidence interval (Equation 1)"),
          3, .5)
 
 
@@ -308,7 +306,7 @@ indtab <- mutate(indtab, indjuv_ub = indjuv + indjuvse*qnorm(.975),
 #Join onto finaldf
 finaldf <- left_join(finaldf, indtab, by = 'bin')
 
-paperFig("indjuv","Change in probability juvenile catch exceeds 0", 4, .1)
+paperFig("indjuv", TeX("$\\beta_{st}$ coefficient and 95% confidence interval (Equation 1)"), 4, .1)
 
 
 ##Now make Figure A5
