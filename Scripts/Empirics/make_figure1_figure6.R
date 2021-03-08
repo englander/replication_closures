@@ -1,4 +1,3 @@
-#Could also plot potential closures for each season
 rm(list=ls())
 setwd("C:/Users/englander/Documents/replication_closures/")
 
@@ -216,7 +215,7 @@ plotlist <- lapply(unique(closed$season), function(x){
 ##Add inset onto first season 2017
 f17 <- ggdraw() +
   draw_plot(plotlist[[1]]) + 
-    draw_plot(saplot, x = 0.515, y = 0.59, width = 0.34, height = 0.34)
+    draw_plot(saplot, x = 0.545, y = 0.59, width = 0.34, height = 0.34)
 
 
 #3 x 2 plot
