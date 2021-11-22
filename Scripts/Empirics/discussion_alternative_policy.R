@@ -37,7 +37,6 @@ rddf <- arrange(rddf, tvar, bdist)
 #1. From make_figure8.R, I know that 
 ctons <- 2722546
 chmjuvsstart <- 46829.39
-changeadultsstar <- -10895.11 #star indicates accounting for reallocation in tons caught
 #And percent change in tons caught is 
 pctons <- exp(0.29933719)-1
 
@@ -76,7 +75,6 @@ avgpj3 <- filter(rddf, rid %in% top410) %>%
 
 chjuv3 <- chindivids3 * avgpj3 #in millions
 
-chadults3 <- chindivids3 * (1 - avgpj3) #in millions
 
 
 #4. In 4 of 6 seasons where TAC binding, reallocate chtons3 to outside treatment window of top410
@@ -127,8 +125,6 @@ pjout <- juvout / nindividsout
 #Compensating decrease in juvenile catch
 chjuv4 <- chindivids4*pjout
 
-#And compensating decrease in adult catch
-chadult4 <- chindivids4*(1-pjout)
 
 #5. Effect of eliminating closures policy and replacing it with "adult policy" on juvenile catch 
 alteffect <- -chmjuvsstart  + chjuv3 - chjuv4
@@ -142,15 +138,3 @@ juv0 <- juv1 + alteffect #closures policy + (no closures policy + adult policy =
 (juv0 - juv1) / juv1
 
 
-#Change in adult catch
-alteffect_adult <- -changeadultsstar  + chadults3 - chadult4
-
-adult1 <- (sum(fullbe$numadults, na.rm=T) / 10^6)
-
-#counterfactual juvenile with adult policy and no closures policy
-adult0 <- adult1 + alteffect_adult #closures policy + (no closures policy + adult policy = alteffect)
-
-#Adult policy and no closures policy would increase adult catch by 4.5% relative to status quo closures policy
-alteffect_adult/adult1
-
-sessionInfo()
