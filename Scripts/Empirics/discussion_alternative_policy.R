@@ -8,8 +8,6 @@
 # is 1 + 3 + 4
 
 #Adult policy and no closures policy would decrease juvenile catch by 56% relative to status quo closures policy
-#Adult policy and no closures policy would increase adult catch by 4.5% relative to status quo closures policy
-
 
 rm(list=ls())
 setwd("C:/Users/englander/Documents/replication_closures")
