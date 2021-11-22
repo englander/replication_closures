@@ -332,41 +332,6 @@ juv0 <- juv1 - chmjuvsstart
 #Then increase in juvenile catch as a percentage is 
 chmjuvsstart / juv0 # 0.4986941
 
-##How does adult catch change because of policy?
-#Average weight of individual caught within treatment window
-avgweightinside <- filter(fullbe, (lead_0==1 | lead_10==1 | lead_20==1 | lead_30==1 | lead_40==1 | lead_50==1 | 
-                                     active_0==1 | active_10==1 | active_20==1 | active_30==1 | active_40==1 | active_50==1 | 
-                                     lag1_0==1 | lag1_10==1 | lag1_20==1 | lag1_30==1 | lag1_40==1 | lag1_50==1 | 
-                                     lag2_0==1 | lag2_10==1 | lag2_20==1 | lag2_30==1 | lag2_40==1 | lag2_50==1 | 
-                                     lag3_0==1 | lag3_10==1 | lag3_20==1 | lag3_30==1 | lag3_40==1 | lag3_50==1 | 
-                                     lag4_0==1 | lag4_10==1 | lag4_20==1 | lag4_30==1 | lag4_40==1 | lag4_50==1) & 
-                            !is.na(numindivids) & !is.na(avgweightg) & Temporada!="2017-II" & Temporada!="2019-II") %>%
-  #Weight by tons
-  mutate(weightweighted = avgweightg*numindivids) %>% 
-  summarise(avgweightg = sum(weightweighted)/sum(numindivids)) %>% as.numeric() 
-
-#(converting tons to g cancels out conversion to millions)
-changeindividsinside <- ctons/avgweightinside
-
-changeadults <- changeindividsinside - changejuv 
-
-#Change in adult catch because of reallocation of fishing
-changeadultsoutside <- chindividsoutside - chjuvsoutside 
-
-#Decrease in adults caught
-(changeadultsstar <- changeadults + changeadultsoutside) #-10895.11
-
-adults1 <- sum(fullbe$numadults, na.rm=T) / 10^6 
-
-adults0 <- adults1 - changeadultsstar
-
-#Reducing adults caught by %
-changeadultsstar/adults0 #-0.01728821
-
-#Clean up adult objects
-rm(adults1, adults0, avgweightinside, changeindividsinside,
-   changeadults, changeadultsstar)
-
 #Calculate standard error on total change in juvenile catch and in total percentage change
 mycoefs <- toteffect_juv$chmjuv_scaled
 mybigvcov <- diag(toteffect_juv$chmjuvse_scaled^2)
