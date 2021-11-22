@@ -1,9 +1,9 @@
 #What would happen if instead of closures, regulator highlighted areas with high percentage of adult catch
-#1. Subtract change in tons, juveniles and adults caught due to closures policy
+#1. Subtract change in tons and number of juveniles caught due to closures policy
 #2. Choose 410 potential closures with highest adult percentage (from sets that generate potential closure)
 #3. Increase tons caught by 35% within treatment window of these 410 potential closures and calculate
-#resulting change in juveniles and adults
-#4. Reallocate tons in 4 of 6 seasons where TAC binding and calculate offseting change in juveniles and adults caught
+#resulting change in juveniles
+#4. Reallocate tons in 4 of 6 seasons where TAC binding and calculate offseting change in juveniles caught
 #5. Effect of eliminating closures policy and replacing it with "adult policy" on juvenile catch 
 # is 1 + 3 + 4
 
