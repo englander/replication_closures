@@ -28,14 +28,8 @@ myThemeStuff <- theme(panel.background = element_rect(fill = NA),
 )
 
 
-#length-weight equation from IMARPE (2019)
-lengthweight <- function(length){
-  #length in cm; weight in g
-  weight <- .0036*length^3.238
-  return(weight)
-}
-
 #Load Figure 6 from IMARPE pdf as an image
+#Full name of pdf is Informe "Evaluacion Hidroacustica de Recursos Pelagicos" Crucero 1703-04
 lfd <- load.image("Data/EvaluacionHidroacusticaRecPelagicosCrucero170304_march2017.jpg")
 
 lfd <- imrotate(lfd, 0.4)
@@ -153,6 +147,9 @@ findprop <- function(lengths){
 #Calculate proportion of individuals at each half cm length interval
 props <- findprop(majticks$length)
 
+#Drop length bins that represent 0 percent of individuals
+props <- filter(props, prop > 0)
+
 #proportions sum to almost exactly one
 sum(props$prop) #1.000117
 
@@ -163,4 +160,96 @@ props <- mutate(props, prop = prop / sum(props$prop))
 sum(props$prop[props$length < 12]) #0.7241098
 #Very accurate
 
+
+##Now calculate status quo harvest (harvest with closures policy)
+#length-weight equation from IMARPE (2019)
+lengthweight <- function(length){
+  #length in cm; weight in g
+  weight <- .0036*length^3.238
+  return(weight)
+}
+
+
+#length-age from Salvatteci and Mendo (2005)
+#Length is in cm and age is in years. 
+lengthage <- function(length){
+  
+  #Using average values from Tabla 2
+  age <- -.0193 - (1/.96)*log(1 - length/19.35)
+  
+  return(age)
+}
+ 
+#Survival equation from Salvatteci and Mendo (2005)
+survival <- function(ntm1, timestep){
+  
+  #Number of survivors in next period
+  nt <- ntm1*exp(-.8*timestep)
+  
+  return(nt)
+}
+
+#Length given age from Salvatteci and Mendo (2005)
+agelength <- function(age){
+  
+  #Using average values from Tabla 2
+  length <- 19.35*(1 - exp(-.96*(age + .0193)))
+  
+  return(length)
+}
+
+
+#Assume this population is equilibrium population and harvest s.t. that 
+#population is constant (individuals in each half-cm length interval is constant)
+#here normalizing individuals to 1. using proportions of individuals. 
+#Age of fish in each length bin
+props <- mutate(props, age_years = lengthage(length))
+
+#Weight of fish in each length bin, weighted by proportion in that bin
+props <- mutate(props, weight = lengthweight(length) * prop)
+
+#One day of growth
+props <- mutate(props, newage_years = age_years + 1/365) %>% 
+  mutate(newlength = agelength(newage_years)) 
+
+#One day of death
+props <- mutate(props, newprop = survival(prop, 1/365))
+
+#New weight of fish in each length bin (after one day of growth and death)
+props <- mutate(props, newweight = lengthweight(newlength) * newprop)
+
+#Harvest fish in each length bin s.t. weight = newweight
+#weight in each length interval constant because quotas set in tons, not number of individuals
+#anchoveta >= 15.5 cm die faster than the grow (in weight terms), so set harvest = 0 for these three length bins
+props <- mutate(props, harvest = if_else(newweight - weight >= 0, newweight - weight, 0))
+
+#Status quo normalized (numindivids = 1) equilibrium harvest
+sq_harvest <- sum(props$harvest)
+
+##Multiplying sq_harvest by number of individuals in population gives one day of harvest in grams
+#Avg weight of individual in population is 
+sum(props$weight)
+
+#if biomass is 9 trillion grams (9 million tons), number of individuals in population is 
+sq_numindivids <- 9*10^12 / sum(props$weight)
+
+#harvest 32,000 tons per day
+sq_harvest * sq_numindivids / 10^6 #convert tons to g
+
+#since there are two fishing seasons of about three months each year
+#status quo harvest is 5.76 million tons; pretty close to what we observe in data
+sq_harvest * sq_numindivids / 10^6 * 180
+
+#Recruitment -- number of 7 cm individuals next period -- is same as number of 7 cm 
+#individuals this period.
+#Will need to allow differential recruitment in counterfactual though. 
+#Perea et al. (2011) finds anchoveta 12 - 14 cm contribute 40% of eggs while 
+#anchoveta >= 14 cm contribute 60% of eggs. 
+#So recruitment = rc*(.4*N_12-14 + .6*N_>=14)
+#Solve for recruitment constant (rc) that will allow me to calculate counterfactual recruitment
+#(using different values of N_12-14 and N_>=14 but same alpha)
+recruit_constant <- props$prop[props$length == 7] / (
+  .4*sum(props$prop[props$length >= 12 & props$length < 14]) + 
+    .6*sum(props$prop[props$length >= 14])
+)
 
