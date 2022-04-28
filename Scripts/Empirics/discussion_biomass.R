@@ -221,10 +221,10 @@ props <- mutate(props, newweight = lengthweight(newlength) * newprop)
 #Harvest fish in each length bin s.t. weight = newweight
 #weight in each length interval constant because quotas set in tons, not number of individuals
 #anchoveta >= 15.5 cm die faster than the grow (in weight terms), so set harvest = 0 for these three length bins
-props <- mutate(props, harvest = if_else(newweight - weight >= 0, newweight - weight, 0))
+props <- mutate(props, harvest_weight = if_else(newweight - weight >= 0, newweight - weight, 0))
 
 #Status quo normalized (numindivids = 1) equilibrium harvest
-sq_harvest <- sum(props$harvest)
+sq_harvest_weight <- sum(props$harvest_weight)
 
 ##Multiplying sq_harvest by number of individuals in population gives one day of harvest in grams
 #Avg weight of individual in population is 
@@ -234,11 +234,14 @@ sum(props$weight)
 sq_numindivids <- 9*10^12 / sum(props$weight)
 
 #harvest 32,000 tons per day
-sq_harvest * sq_numindivids / 10^6 #convert tons to g
+sq_harvest_weight * sq_numindivids / 10^6 #convert tons to g
 
 #since there are two fishing seasons of about three months each year
 #status quo harvest is 5.76 million tons; pretty close to what we observe in data
-sq_harvest * sq_numindivids / 10^6 * 180
+sq_harvest_weight * sq_numindivids / 10^6 * 180
+
+#How many individuals are caught in status quo? (in proportion of individuals)
+props <- mutate(props, harvest_individs = harvest_weight / newweight)
 
 #Recruitment -- number of 7 cm individuals next period -- is same as number of 7 cm 
 #individuals this period.
@@ -252,4 +255,32 @@ recruit_constant <- props$prop[props$length == 7] / (
   .4*sum(props$prop[props$length >= 12 & props$length < 14]) + 
     .6*sum(props$prop[props$length >= 14])
 )
+
+#step forward one day, harvest same weight as sq_harvest but allocated differently 
+#across length bins (1/1.5 fewer juveniles), add recruitment once initially 7 cm bin reaches 7.5 cm bin.
+#calculate difference between period t and t+1 harvest in each length bin
+#and stop simulation once harvest in each length bin converges. 
+
+#Closures increase juvenile catch by 50%, so calculate number of juveniles caught 
+#in counterfactual where catch 50% fewer
+props <- mutate(props, harvest_individs_counter = if_else(length < 12, harvest_individs/1.5, as.numeric(NA)))
+
+#Calculate the weight of juveniles caught in counterfactual
+props <- mutate(props, harvest_weight_counter = harvest_weight * 
+                  (harvest_individs_counter / harvest_individs ))
+
+
+
+#How many juveniles are caught in status quo? (in proportion of individuals)
+juv1 <- filter(props, length < 12) %>% 
+  summarise(sum(harvest_individs)) %>% 
+  as.matrix() %>% as.numeric() 
+
+
+juv0 <- juv1/1.5
+
+
+
+projdf <- ni; numdays <- 0
+
 
