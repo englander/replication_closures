@@ -7,7 +7,7 @@
 
 rm(list=ls())
 
-setwd("C:/Users/englander/Documents/replication_closures")
+setwd("C:/Users/gabee/Documents/replication_closures")
 
 library(dplyr); library(tidyr); library(purrr)
 
@@ -19,7 +19,7 @@ load("Output/Data/pbe_imp.Rdata")
 propbins <- grep("hat",names(fullbe),value=T)
 propbins <- grep("prop",propbins,value=T)
 
-ni <- dplyr::select(fullbe, numindivids, propbins)
+ni <- dplyr::select(fullbe, numindivids, all_of(propbins))
 
 ni <- filter(ni, !is.na(numindivids) & !is.na(prop10hat))
 
@@ -104,7 +104,7 @@ projdf <- ni; numdays <- 0
 
 #So move forward one day at a time until number of juveniles caught is <= 1/1.5 of juv1
 while (juv0/juv1 >= 1/1.5) {
-  
+
   numdays <- numdays + 1
   
   #One day of growth
