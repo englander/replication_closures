@@ -178,6 +178,14 @@
         "bit"
       ]
     },
+    "bmp": {
+      "Package": "bmp",
+      "Version": "0.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "c71b569d923cdc420491907928595aca",
+      "Requirements": []
+    },
     "boot": {
       "Package": "boot",
       "Version": "1.3-28",
@@ -386,6 +394,16 @@
       "Repository": "CRAN",
       "Hash": "d0ef6cd1546530da4d72179b52856e84",
       "Requirements": []
+    },
+    "downloader": {
+      "Package": "downloader",
+      "Version": "0.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "f4f2a915e0dedbdf016a83b63477349f",
+      "Requirements": [
+        "digest"
+      ]
     },
     "dplyr": {
       "Package": "dplyr",
@@ -637,6 +655,36 @@
         "vctrs"
       ]
     },
+    "igraph": {
+      "Package": "igraph",
+      "Version": "1.3.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "820595efd173f9bac4ea76c1be007299",
+      "Requirements": [
+        "Matrix",
+        "magrittr",
+        "pkgconfig"
+      ]
+    },
+    "imager": {
+      "Package": "imager",
+      "Version": "0.42.13",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "c8f2f3e8d1bea246381bc0983ed25f40",
+      "Requirements": [
+        "Rcpp",
+        "downloader",
+        "igraph",
+        "jpeg",
+        "magrittr",
+        "png",
+        "purrr",
+        "readbitmap",
+        "stringr"
+      ]
+    },
     "ipred": {
       "Package": "ipred",
       "Version": "0.9-12",
@@ -666,6 +714,14 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "64778782a89480e9a644f69aad9a2877",
+      "Requirements": []
+    },
+    "jpeg": {
+      "Package": "jpeg",
+      "Version": "0.1-9",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "441ee36360a57b363f4fa3df0c364630",
       "Requirements": []
     },
     "kernlab": {
@@ -1026,6 +1082,14 @@
         "Rcpp"
       ]
     },
+    "png": {
+      "Package": "png",
+      "Version": "0.1-7",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "03b7076c234cb3331288919983326c55",
+      "Requirements": []
+    },
     "prettyunits": {
       "Package": "prettyunits",
       "Version": "1.1.1",
@@ -1112,6 +1176,19 @@
         "Rcpp",
         "sp",
         "terra"
+      ]
+    },
+    "readbitmap": {
+      "Package": "readbitmap",
+      "Version": "0.1.5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "ec19e2be05f06df441857070a456dbe5",
+      "Requirements": [
+        "bmp",
+        "jpeg",
+        "png",
+        "tiff"
       ]
     },
     "readr": {
@@ -1443,6 +1520,14 @@
         "rlang",
         "vctrs"
       ]
+    },
+    "tiff": {
+      "Package": "tiff",
+      "Version": "0.1-11",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "9b1679a33f3adff6a6eb05c97fb90f50",
+      "Requirements": []
     },
     "timeDate": {
       "Package": "timeDate",
