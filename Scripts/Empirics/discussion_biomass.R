@@ -160,6 +160,18 @@ props <- mutate(props, prop = prop / sum(props$prop))
 sum(props$prop[props$length < 12]) #0.7241098
 #Very accurate
 
+#Distribute proportion uniformly over .01 cm interval within each .5 cm interval
+props <- map_df(1:nrow(props), function(x){
+  
+  myrow <- props[x,]
+  
+  out <- data.frame(length = seq(from = myrow$length, to = (myrow$length + 0.49), by = 0.01))
+  
+  out <- mutate(out, prop = myrow$prop / nrow(out))
+  
+  out
+  
+})
 
 ##Now calculate status quo harvest (harvest with closures policy)
 #length-weight equation from IMARPE (2019)
@@ -235,7 +247,7 @@ harvest_juv_per_day <- (sum(fullbe$tonsjuv, na.rm=T) / (sum(fullbe$tonsjuv, na.r
 #So recruitment = rc*(.4*N_12-14 + .6*N_>=14)
 #Solve for recruitment constant (rc) that will allow me to calculate counterfactual recruitment
 #(using different values of N_12-14 and N_>=14 but same alpha)
-recruit_constant <- props$prop[props$length == 7] / (
+recruit_constant <- sum(props$prop[props$length < 7.5]) / (
   .4*sum(props$prop[props$length >= 12 & props$length < 14]) + 
     .6*sum(props$prop[props$length >= 14])
 )
@@ -250,20 +262,18 @@ recruit_constant <- recruit_constant / ((props$age_years[props$length == 7.5] -
 
 
 #Set "new" values as starting values. will update these in simulation
-sqdf <- mutate(props,newlength = length, newprop = prop, newage_years = age_years, 
+sqdf <- mutate(props, newlength = length, newprop = prop, newage_years = age_years, 
                newweight = weight, newbiomass = biomass)
 
+#COULD DO: Equilibrium when total biomass doesn't change
+biomassdif <- sqdf$biomass %>% sum()
 #Starting value for biomass difference is just biomass values themselves
-biomassdif <- sqdf$biomass
-
-#Recruitment accrues each day, but a new class of 7 cm anchoveta only enter the population 
-#(the data frame) when the initial class of 7 cm anchoveta have reached 7.5 cm
-prop7 <- 0
+#biomassdif <- sqdf$biomass
 
 while(max(abs(biomassdif)) > 1e-5){
   
   #Starting levels of biomass
-  startbiomass <- sqdf$newbiomass
+  startbiomass <- sum(sqdf$newbiomass)
   
   #juvenile and adult biomass
   juvbiomass <- sum(sqdf$newbiomass[sqdf$length < 12])
@@ -275,14 +285,22 @@ while(max(abs(biomassdif)) > 1e-5){
     mutate(newlength = agelength(newage_years)) %>% 
     mutate(newweight = lengthweight(newlength)) %>%
     #One day of death
-    mutate(newprop = survival(newprop, 1/365)) 
-  
+    mutate(newprop = survival(newprop, 1/365))
   
   #Recruitment accrues each day
-  prop7 <- prop7 + recruit_constant*(
+  prop7 <- recruit_constant*(
     .4*sum(sqdf$newprop[sqdf$newlength >= 12 & sqdf$newlength < 14]) + 
       .6*sum(sqdf$newprop[sqdf$newlength >= 14])
   )
+  
+  #Add this new recruited 7 cm length class to sqdf 
+  sqdf <- bind_rows(
+      data.frame(length = 7, prop = as.numeric(NA), age_years = as.numeric(NA), weight = as.numeric(NA),
+                 biomass = as.numeric(NA),
+                 newlength = 7, newprop = prop7, newage_years = 0.4484462, newweight = 1.96214,
+                 newbiomass = 0.02613342),
+      sqdf
+    )
   
   sqdf <- sqdf %>% 
     # #One day of harvest. New normalized biomass of fish in each length bin
@@ -305,7 +323,7 @@ while(max(abs(biomassdif)) > 1e-5){
     sqdf <- sqdf[-whichneg,]
     
     #Also drop them from startbiomass so when re-calculating biomassdif the two vectors have the same number of elements
-    startbiomass <- startbiomass[-whichneg]
+    #startbiomass <- startbiomass[-whichneg]
     
   }
   
@@ -318,32 +336,32 @@ while(max(abs(biomassdif)) > 1e-5){
     sqdf <- sqdf[-which3,]
     
     #Also drop them from startbiomass so when re-calculating biomassdif the two vectors have the same number of elements
-    startbiomass <- startbiomass[-which3]
-    
-  }
-  
-  #Re-calculate biomassdif
-  biomassdif <- startbiomass - sqdf$newbiomass
-  
-  #A new class of 7 cm anchoveta only enter the population 
-  #(the data frame) when the initial class of 7 cm anchoveta have reached 7.5 cm
-  if(min(sqdf$newlength) >= 7.5){
-    
-  sqdf <- bind_rows(
-      data.frame(length = 7, prop = 0.01331884, age_years = 0.4484462, weight = 1.96214, 
-                 biomass = 0.02613342, 
-                 newlength = 7, newprop = prop7, newage_years = 0.4484462, newweight = 1.96214, 
-                 newbiomass = 0.02613342),
-      sqdf
-    )
-  
-  #reset prop7
-  prop7 <- 0
+    #startbiomass <- startbiomass[-which3]
     
   }
   
   #Maximum length of anchoveta is 20.59 cm: Tabla 4 IMARPE (2019)
   sqdf <- filter(sqdf, newlength <= 20.59)
+  
+  #Re-calculate biomassdif
+  biomassdif <- startbiomass - sum(sqdf$newbiomass)
+  
+  # #A new class of 7 cm anchoveta only enter the population 
+  # #(the data frame) when the initial class of 7 cm anchoveta have reached 7.5 cm
+  # if(min(sqdf$newlength) >= 7.5){
+  #   
+  # sqdf <- bind_rows(
+  #     data.frame(length = 7, prop = 0.01331884, age_years = 0.4484462, weight = 1.96214, 
+  #                biomass = 0.02613342, 
+  #                newlength = 7, newprop = prop7, newage_years = 0.4484462, newweight = 1.96214, 
+  #                newbiomass = 0.02613342),
+  #     sqdf
+  #   )
+  # 
+  # #reset prop7
+  # prop7 <- 0
+  #   
+  # }
   
 }
 
