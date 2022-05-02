@@ -299,7 +299,8 @@ sq_sim <- function(returnbiomass, convergecondition = NULL, decay){
         sqdf
       )
       
-      #Harvest if within season. Two fishing seasons of 91 days each.
+      #Harvest if within season and adult biomass > 4. 
+      #Two fishing seasons of 91 days each.
       if(mytime > 31 & #first fishing season starts about one month after biomass measurement
          (
            (mod(mytime, 365) > 31 & mod(mytime, 365) < 123) | 
@@ -309,6 +310,14 @@ sq_sim <- function(returnbiomass, convergecondition = NULL, decay){
       #Total biomass at start of season
       if(round(mod(mytime, 365)) %in% c(32, 215)){
         
+        #If adult biomass < 4, don't allow fishing this season
+        if(sum(sqdf$newbiomass[sqdf$newlength >= 12] < 4)){
+        
+          myhpd <- 0
+          
+        }else{
+          
+        #Otherwise harvest 1/4 of biomass
         #total biomass
         totbiomass <- sum(sqdf$newbiomass)
         
@@ -317,6 +326,7 @@ sq_sim <- function(returnbiomass, convergecondition = NULL, decay){
         
         #Harvest per day (91 days in season)
         myhpd <- totharvest / 91
+        }
         
       }
       
@@ -549,16 +559,28 @@ Sys.time() - start
 
 eqdf
 rm(x, mysqdf, mytime)
-sq_sim(T, 395/365, .8)
+ggplot(data = eqdf, aes(x = sim_days, y = eqbiomass)) + 
+  geom_line() + 
+  geom_vline(aes(xintercept = 32), col = 'red', linetype = 'dashed')
+
 
 #starting at 488, add_sim_days is not exactly reproducing sq_sim
 g <- sq_sim(F, 488/365, .8)
 sum(g$newbiomass)
-#Also wondering why stock stops growing even with no natural mortality
 
-ggplot(data = g, aes(x = sim_days, y = eqbiomass)) + 
-  geom_line() + 
-  geom_vline(aes(xintercept = 32), col = 'red', linetype = 'dashed')
+#Also wondering why stock stops growing even with no natural mortality
+g <- sq_sim(F, 20, 0)
+sum(g$newbiomass)
+
+#Plot number of individuals by length
+ggplot() + 
+  geom_line(data = g, aes(x = newlength, y = newprop), col = 'red') 
+
+#Plot biomass by length
+ggplot() + 
+  geom_line(data = g, aes(x = newlength, y = newbiomass), col = 'red')
+
+
 
 #Apply sq_sim over convergecondition times
 g <- map_df(c(1, 10, 20, 30, 31, 32, 33, 34, 35, 45, 60, 90, 115, 125, 130, 131, 132, 133, 134, 150, 
