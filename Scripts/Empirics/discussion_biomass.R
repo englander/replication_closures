@@ -256,14 +256,11 @@ rm(topy, lfd, bottomy, minticks, majticks, glfd, fullbe)
 
 #Given whether want to return summed biomass or full population size structure data frame,
 #whether convergence condition is based on biomass (default) or want to run simulation for certain number of years,
-#and decay rate for survival function,
+#decay rate for survival function, and recruitment constant,
 #simulate recruitment (reproduction), growth, natural mortality, 
 #and harvest until biomass converges. Return equilibrium biomass if returnbiomass == T, 
 #otherwise return equilibrium population (sqdf)
-#returnbiomass <- F; convergecondition <- .5; decay <- 0.8
-rm(myhpd, returnbiomass, convergecondition, decay, sqdf, mytime, prop7, juvbiomass, 
-   adultbiomass, whichneg, which3, totbiomass, totharvest)
-sq_sim <- function(returnbiomass, convergecondition = NULL, decay){
+sq_sim <- function(returnbiomass, convergecondition = NULL, decay, myrc){
   
   #Set "new" values as starting values. will update these in simulation
   sqdf <- mutate(props, newlength = length, newprop = prop, newage_years = age_years, 
@@ -277,7 +274,7 @@ sq_sim <- function(returnbiomass, convergecondition = NULL, decay){
     while(mytime < convergecondition*365 & sum(sqdf$newbiomass) > 0){
       
       #Recruitment accrues each day
-      prop7 <- recruit_constant*(
+      prop7 <- myrc*(
         .4*sum(sqdf$newprop[sqdf$newlength >= 12 & sqdf$newlength < 14]) + 
           .6*sum(sqdf$newprop[sqdf$newlength >= 14])
       )
@@ -409,6 +406,31 @@ sq_sim <- function(returnbiomass, convergecondition = NULL, decay){
   
 }
 
+#Stock goes extinct with current recruitment constant, fishing mortality, and natural mortality
+#Since recruitment constant is made up, while fishing mortality comes from data and natural mortality
+#comes from Salvatteci and Mendo (2005), choose the recruitment constant such that 
+#biomass after 100 years is close to initial biomass. 
+rcdf <- map_df(from = 2, to = 4, by = 0.25, function(x){
+  
+  eqbiomass <- sq_sim(returnbiomass = T, convergecondition = 100, decay = 0.8, myrc = recruit_constant * 4)
+
+  data.frame(eqbiomass = eqbiomass, rcfactor = x)
+  
+})
+
+
+
+
+
+
+
+
+
+
+
+
+(g <- sq_sim(T, convergecondition = 50, decay = 0.8))
+sample_n(g, 10)
 #Given sqdf and number of additional days to run simulation, run the simulation 
 #for those additional days and output a new sqdf
 #mysqdf <- sq_sim(F, 1/365, .8); adddays <- 1; decay <- .8
