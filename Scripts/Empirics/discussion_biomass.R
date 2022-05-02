@@ -243,23 +243,27 @@ load("Output/Data/pbe_imp.Rdata")
 #Catch about 4 million tons per year
 sum(fullbe$betons) / (3*10^6)
 
-#Normalized harvest per day is 
-harvest_per_day <- ((sum(fullbe$betons) / (3*10^6) / 365) / 7.78) * sum(props$biomass)
+#Biomass at start of season is 8 or 9 million tons
+#Since two fishing seasons, catch about 25% of biomass each season
+#Define this "adaptive management" harvest within while loop
 
 #Fraction of harvest by weight that is juvenile
 harvest_juv_frac <- (sum(fullbe$tonsjuv, na.rm=T) / (sum(fullbe$tonsjuv, na.rm=T) + 
                                                        sum(fullbe$tonsadult, na.rm=T)))
 
-#Given harvest per day, whether want to return summed biomass or full population size structure data frame,
+#Clean up
+rm(topy, lfd, bottomy, minticks, majticks, glfd, fullbe)
+
+#Given whether want to return summed biomass or full population size structure data frame,
 #whether convergence condition is based on biomass (default) or want to run simulation for certain number of years,
 #and decay rate for survival function,
 #simulate recruitment (reproduction), growth, natural mortality, 
 #and harvest until biomass converges. Return equilibrium biomass if returnbiomass == T, 
 #otherwise return equilibrium population (sqdf)
-myhpd <- 0; returnbiomass <- F; convergecondition <- .5; decay <- 0
+#returnbiomass <- F; convergecondition <- .5; decay <- 0.8
 rm(myhpd, returnbiomass, convergecondition, decay, sqdf, mytime, prop7, juvbiomass, 
-   adultbiomass, whichneg, which3)
-sq_sim <- function(myhpd, returnbiomass, convergecondition = NULL, decay){
+   adultbiomass, whichneg, which3, totbiomass, totharvest)
+sq_sim <- function(returnbiomass, convergecondition = NULL, decay){
   
   #Set "new" values as starting values. will update these in simulation
   sqdf <- mutate(props, newlength = length, newprop = prop, newage_years = age_years, 
@@ -269,8 +273,8 @@ sq_sim <- function(myhpd, returnbiomass, convergecondition = NULL, decay){
     
     mytime <- 0
     
-    #Simulate population for convergecondition years
-    while(mytime < convergecondition*365){
+    #Simulate population for convergecondition years and as long as population is not extinct
+    while(mytime < convergecondition*365 & sum(sqdf$newbiomass) > 0){
       
       #Recruitment accrues each day
       prop7 <- recruit_constant*(
@@ -278,7 +282,15 @@ sq_sim <- function(myhpd, returnbiomass, convergecondition = NULL, decay){
           .6*sum(sqdf$newprop[sqdf$newlength >= 14])
       )
       
-      #Add this new recruited 7 cm length class to sqdf 
+      #Increase age by one day 
+      sqdf <- mutate(sqdf, newage_years = newage_years + 1/365) %>% 
+        #one day of growth
+        mutate(newlength = agelength(newage_years)) %>% 
+        mutate(newweight = lengthweight(newlength)) %>% 
+        #One day of death
+        mutate(newprop = survival(newprop, 1/365, decay))
+      
+      #Add new recruited 7 cm length class to sqdf (new recruited class does not grow or die this period)
       sqdf <- bind_rows(
         data.frame(length = 7, prop = as.numeric(NA), age_years = as.numeric(NA), weight = as.numeric(NA),
                    biomass = as.numeric(NA),
@@ -287,30 +299,52 @@ sq_sim <- function(myhpd, returnbiomass, convergecondition = NULL, decay){
         sqdf
       )
       
-      #Increase age by one day
-      sqdf <- mutate(sqdf, newage_years = newage_years + 1/365) %>% 
-        #one day of growth
-        mutate(newlength = agelength(newage_years)) %>% 
-        mutate(newweight = lengthweight(newlength)) %>%
-        #One day of death
-        mutate(newprop = survival(newprop, 1/365, decay))
+      #Harvest if within season. Two fishing seasons of 91 days each.
+      if(mytime > 31 & #first fishing season starts about one month after biomass measurement
+         (
+           (mod(mytime, 365) > 31 & mod(mytime, 365) < 123) | 
+           (mod(mytime, 365) > 214 & mod(mytime, 365) < 306)
+         )){
       
-      #juvenile and adult biomass for allocating harvest proportionally
+      #Total biomass at start of season
+      if(round(mod(mytime, 365)) %in% c(32, 215)){
+        
+        #total biomass
+        totbiomass <- sum(sqdf$newbiomass)
+        
+        #harvest 25% of total biomass
+        totharvest <- totbiomass / 4
+        
+        #Harvest per day (91 days in season)
+        myhpd <- totharvest / 91
+        
+      }
+      
+      #Juvenile and adult total biomass this period 
       juvbiomass <- sum(sqdf$newbiomass[sqdf$newlength < 12])
-      adultbiomass <- sum(sqdf$newbiomass[sqdf$newlength >= 12])
-      
+      adultbiomass <- sum(sqdf$newbiomass[sqdf$newlength >= 12])  
+         
       #Harvest
       sqdf <- sqdf %>% 
         #One day of harvest. New normalized biomass of fish in each length bin
         mutate(newbiomass = if_else(newlength < 12,
                                     newweight*newprop -
+                                      #harvest_juv_frac % of total harvest (myhpd) comes from juveniles. 
+                                      #Then allocate that harvest across juveniles in proportion to relative biomass of each length interval ((newbiomass / juvbiomass))
                                       myhpd*harvest_juv_frac*(newbiomass / juvbiomass),
                                     newweight*newprop -
                                       myhpd*(1 - harvest_juv_frac)*(newbiomass / adultbiomass)
         )) %>%
-        #mutate(newbiomass = newweight*newprop) %>% 
+        #If newbiomass has become NaN (this occurs when juvbiomass = 0 or adultbiomass = 0), 
+        #reset newbiomass to 0
+        mutate(newbiomass = if_else(is.nan(newbiomass), 0, newbiomass)) %>% 
         #New proportion of individuals
         mutate(newprop = newbiomass / newweight)
+      
+      }else{
+        #Otherwise we are not in fishing season and just update biomass to reflect newweight and newprop
+        sqdf <- mutate(sqdf, newbiomass = newweight*newprop)
+      }
       
       #which rows have negative newprop? that means there are no more individuals of this length bin
       whichneg <- which(sqdf$newprop < 0)
@@ -345,115 +379,209 @@ sq_sim <- function(myhpd, returnbiomass, convergecondition = NULL, decay){
     biomassdif <- sqdf$biomass %>% sum()  
     
     while(max(abs(biomassdif)) > 1e-5){
-    
-    #Starting levels of biomass
-    startbiomass <- sum(sqdf$newbiomass)
-    
-    #Recruitment accrues each day
-    prop7 <- recruit_constant*(
-      .4*sum(sqdf$newprop[sqdf$newlength >= 12 & sqdf$newlength < 14]) + 
-        .6*sum(sqdf$newprop[sqdf$newlength >= 14])
-    )
-    
-    #Add this new recruited 7 cm length class to sqdf 
-    sqdf <- bind_rows(
-      data.frame(length = 7, prop = as.numeric(NA), age_years = as.numeric(NA), weight = as.numeric(NA),
-                 biomass = as.numeric(NA),
-                 newlength = 7, newprop = prop7, newage_years = 0.4484462, newweight = 1.96214,
-                 newbiomass = 0.02613342),
-      sqdf
-    )
-    
-    #Increase age by one day
-    sqdf <- mutate(sqdf, newage_years = newage_years + 1/365) %>% 
-      #one day of growth
-      mutate(newlength = agelength(newage_years)) %>% 
-      mutate(newweight = lengthweight(newlength)) %>%
-      #One day of death
-      mutate(newprop = survival(newprop, 1/365, decay))
-
-    #juvenile and adult biomass for allocating harvest proportionally
-    juvbiomass <- sum(sqdf$newbiomass[sqdf$newlength < 12])
-    adultbiomass <- sum(sqdf$newbiomass[sqdf$newlength >= 12])
-    
-    #Harvest
-    sqdf <- sqdf %>% 
-      #One day of harvest. New normalized biomass of fish in each length bin
-      mutate(newbiomass = if_else(newlength < 12,
-                                  newweight*newprop -
-                                    myhpd*harvest_juv_frac*(newbiomass / juvbiomass),
-                                  newweight*newprop -
-                                    myhpd*(1 - harvest_juv_frac)*(newbiomass / adultbiomass)
-      )) %>%
-      #mutate(newbiomass = newweight*newprop) %>% 
-      #New proportion of individuals
-      mutate(newprop = newbiomass / newweight)
-    
-    #which rows have negative newprop? that means there are no more individuals of this length bin
-    whichneg <- which(sqdf$newprop < 0)
-    
-    if(length(whichneg) > 0){
+    #INSERT FINAL WHILE CODE HERE
       
-      #Drop these elements from sqdf 
-      sqdf <- sqdf[-whichneg,]
-      
-    }
-    
-    #which rows have age > 3? 3 is max age of anchoveta so drop any rows older than 3
-    which3 <- which(sqdf$newage_years > 3)
-    
-    if(length(which3) > 0){
-      
-      #Drop these elements from sqdf 
-      sqdf <- sqdf[-which3,]
-      
-    }
-    
-    #Maximum length of anchoveta is 20.59 cm: Tabla 4 IMARPE (2019)
-    sqdf <- filter(sqdf, newlength <= 20.59)
-    
-    #Re-calculate biomassdif
-    biomassdif <- startbiomass - sum(sqdf$newbiomass)
-    
-  }
+      }
   
   }  
     
   if(returnbiomass == T){
     #Output equilibrium biomass
-    out <- data.frame(harvest_per_day = myhpd, eqbiomass = sum(sqdf$newbiomass))
+    out <- data.frame(eqbiomass = sum(sqdf$newbiomass), 
+                      sim_days = mytime)
   } else{
     #Otherwise return equilibrium population
-    out <- sqdf
+    out <- sqdf %>% 
+      mutate(sim_days = mytime)
   }
   
   return(out)
   
 }
 
-#when myhpd = 0 (no fishing) and decay = .8, which is decay parameter in Salvatteci and Mendo (2005), 
-#newbiomass becomes NaN b/c at 2 + 7/365 there are no more adults, 
-#so adult biomass is 0, and adultbiomass is in denominator of re-calculating newbiomass
-#Instead, choose decay parameter so that equilibrium biomass matches initial biomass
-#at status quo harvest (harvest_per_day)
+#Given sqdf and number of additional days to run simulation, run the simulation 
+#for those additional days and output a new sqdf
+#mysqdf <- sq_sim(F, 1/365, .8); adddays <- 1; decay <- .8
+rm(myhpd, returnbiomass, convergecondition, decay, sqdf, mytime, prop7, juvbiomass, 
+   adultbiomass, whichneg, which3, totbiomass, totharvest)
+add_sim_days <- function(mysqdf, adddays, decay){
+  
+  mytime <- unique(mysqdf$sim_days)
+  starttime <- unique(mysqdf$sim_days)
+  sqdf <- mysqdf
+    
+    #Simulate population for convergecondition years and as long as population is not extinct
+    while(mytime < (starttime + adddays*365) & sum(sqdf$newbiomass) > 0){
+      
+      #Recruitment accrues each day
+      prop7 <- recruit_constant*(
+        .4*sum(sqdf$newprop[sqdf$newlength >= 12 & sqdf$newlength < 14]) + 
+          .6*sum(sqdf$newprop[sqdf$newlength >= 14])
+      )
+      
+      #Increase age by one day 
+      sqdf <- mutate(sqdf, newage_years = newage_years + 1/365) %>% 
+        #one day of growth
+        mutate(newlength = agelength(newage_years)) %>% 
+        mutate(newweight = lengthweight(newlength)) %>% 
+        #One day of death
+        mutate(newprop = survival(newprop, 1/365, decay))
+      
+      #Add new recruited 7 cm length class to sqdf (new recruited class does not grow or die this period)
+      sqdf <- bind_rows(
+        data.frame(length = 7, prop = as.numeric(NA), age_years = as.numeric(NA), weight = as.numeric(NA),
+                   biomass = as.numeric(NA),
+                   newlength = 7, newprop = prop7, newage_years = 0.4484462, newweight = 1.96214) %>% 
+          mutate(newbiomass = newweight*newprop),
+        sqdf
+      )
+      
+      #Harvest if within season. Two fishing seasons of 91 days each.
+      if(mytime > 31 & #first fishing season starts about one month after biomass measurement
+         (
+           (mod(mytime, 365) > 31 & mod(mytime, 365) < 123) | 
+           (mod(mytime, 365) > 214 & mod(mytime, 365) < 306)
+         )){
+        
+        #Total biomass at start of season
+        if(round(mod(mytime, 365)) %in% c(32, 215)){
+          
+          #total biomass
+          totbiomass <- sum(sqdf$newbiomass)
+          
+          #harvest 25% of total biomass
+          totharvest <- totbiomass / 4
+          
+          #Harvest per day (91 days in season)
+          myhpd <- totharvest / 91
+          
+        }
+        
+        #Juvenile and adult total biomass this period 
+        juvbiomass <- sum(sqdf$newbiomass[sqdf$newlength < 12])
+        adultbiomass <- sum(sqdf$newbiomass[sqdf$newlength >= 12])  
+        
+        #Harvest
+        sqdf <- sqdf %>% 
+          #One day of harvest. New normalized biomass of fish in each length bin
+          mutate(newbiomass = if_else(newlength < 12,
+                                      newweight*newprop -
+                                        #harvest_juv_frac % of total harvest (myhpd) comes from juveniles. 
+                                        #Then allocate that harvest across juveniles in proportion to relative biomass of each length interval ((newbiomass / juvbiomass))
+                                        myhpd*harvest_juv_frac*(newbiomass / juvbiomass),
+                                      newweight*newprop -
+                                        myhpd*(1 - harvest_juv_frac)*(newbiomass / adultbiomass)
+          )) %>%
+          #If newbiomass has become NaN (this occurs when juvbiomass = 0 or adultbiomass = 0), 
+          #reset newbiomass to 0
+          mutate(newbiomass = if_else(is.nan(newbiomass), 0, newbiomass)) %>% 
+          #New proportion of individuals
+          mutate(newprop = newbiomass / newweight)
+        
+      }else{
+        #Otherwise we are not in fishing season and just update biomass to reflect newweight and newprop
+        sqdf <- mutate(sqdf, newbiomass = newweight*newprop)
+      }
+      
+      #which rows have negative newprop? that means there are no more individuals of this length bin
+      whichneg <- which(sqdf$newprop < 0)
+      
+      if(length(whichneg) > 0){
+        
+        #Drop these elements from sqdf 
+        sqdf <- sqdf[-whichneg,]
+        
+      }
+      
+      #which rows have age > 3? 3 is max age of anchoveta so drop any rows older than 3
+      which3 <- which(sqdf$newage_years > 3)
+      
+      if(length(which3) > 0){
+        
+        #Drop these elements from sqdf 
+        sqdf <- sqdf[-which3,]
+        
+      }
+      
+      #Maximum length of anchoveta is 20.59 cm: Tabla 4 IMARPE (2019)
+      sqdf <- filter(sqdf, newlength <= 20.59)
+      
+      mytime <- mytime + 1
+      
+    }
 
-sum(props$biomass)
+  #return equilibrium population
+  out <- sqdf %>% 
+    mutate(sim_days = adddays*365 + starttime)
+  
+  return(out)
+}
 
+#Given vector of days to run simulation until, run simulation iteratively with add_sim_days()
+#Loop sq_sim over convergecondition times
+eqdf <- data.frame(eqbiomass = as.numeric(NULL), sim_days = as.numeric(NULL))
 
-(g <- sq_sim(harvest_per_day, F, convergecondition = 10, 0))
+timevec <- c(1, 31, 32, 123, 214, 215, 306) / 365
+timevec <- c(timevec, timevec[-1] + 1)
 
+# timevec <- (c(1, 31, 32, 123, 214, 215, 306,
+#               31 + 365, 32 + 365, 123 + 365, 214 + 365, 306 + 365) / 365)
+
+start <- Sys.time()
+for(x in 1:length(timevec)){
+                
+              if(x == 1){
+                mysqdf <- sq_sim(F, convergecondition = 1/365, 0.8)
+                
+                eqdf <- bind_rows(eqdf, 
+                                  data.frame(eqbiomass = sum(mysqdf$newbiomass), sim_days = timevec[x] * 365))
+                                  
+              }else{
+                mysqdf <- add_sim_days(mysqdf, adddays = timevec[x] - timevec[x - 1], decay = .8)
+                
+                eqdf <- bind_rows(eqdf, 
+                                  data.frame(eqbiomass = sum(mysqdf$newbiomass), sim_days = timevec[x] * 365))
+              }
+                
+  
+}
+Sys.time() - start
+
+eqdf
+rm(x, mysqdf, mytime)
+sq_sim(T, 395/365, .8)
+
+#starting at 488, add_sim_days is not exactly reproducing sq_sim
+g <- sq_sim(F, 488/365, .8)
 sum(g$newbiomass)
+#Also wondering why stock stops growing even with no natural mortality
 
-#filter(g, is.nan(newbiomass))
+ggplot(data = g, aes(x = sim_days, y = eqbiomass)) + 
+  geom_line() + 
+  geom_vline(aes(xintercept = 32), col = 'red', linetype = 'dashed')
 
+#Apply sq_sim over convergecondition times
+g <- map_df(c(1, 10, 20, 30, 31, 32, 33, 34, 35, 45, 60, 90, 115, 125, 130, 131, 132, 133, 134, 150, 
+              180, 200, 210, 212, 213, 214, 215, 216, 217, 230, 250, 270, 290, 300, 303, 304, 305, 
+              306, 307, 308, 320, 330, 345, 365) / 365, function(x){
+                sq_sim(T, convergecondition = x, .8)
+              })
+
+ggplot(data = g, aes(x = sim_days, y = eqbiomass)) + 
+  geom_line() + 
+  geom_vline(aes(xintercept = 32), col = 'red', linetype = 'dashed') + 
+  geom_vline(aes(xintercept = 122), col = 'red', linetype = 'dashed') + 
+  geom_vline(aes(xintercept = 215), col = 'red', linetype = 'dashed') + 
+  geom_vline(aes(xintercept = 305), col = 'red', linetype = 'dashed')
+  
 #Plot number of individuals by length
 ggplot() + 
-  geom_line(data = g, aes(x = newlength, y = newprop), col = 'red') + 
+  geom_line(data = sqdf, aes(x = newlength, y = newprop), col = 'red') + 
   geom_line(data = props, aes(x = length, y = prop))
 
 #Plot biomass by length
 ggplot() + 
-  geom_line(data = g, aes(x = newlength, y = newbiomass), col = 'red') + 
+  geom_line(data = sqdf, aes(x = newlength, y = newbiomass), col = 'red') + 
   geom_line(data = props, aes(x = length, y = biomass)) + 
   geom_vline(aes(xintercept = 12))
 
