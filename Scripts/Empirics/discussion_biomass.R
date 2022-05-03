@@ -270,9 +270,19 @@ sq_sim <- function(returnbiomass, convergecondition = NULL, decay, myrc){
   sqdf <- mutate(props, newlength = length, newprop = prop, newage_years = age_years, 
                  newweight = weight, newbiomass = biomass)
   
+  harvestdf <- data.frame(year = as.numeric(NULL), 
+                          season = as.numeric(NULL),
+                          adultbiomass_start = as.numeric(NULL), #adult biomass at start of season
+                          juvbiomass_start = as.numeric(NULL),
+                          adultbiomass_end = as.numeric(NULL), #adult biomass at end of season
+                          juvbiomass_end = as.numeric(NULL),
+                          harvest = as.numeric(NULL) #total harvest over course of this season)
+  )
+                          
   if(is.numeric(convergecondition)){
     
     mytime <- 0
+    harvestcounter <- 0 #count harvest each day, then record total harvest over season after season ends
     
     #Simulate population for convergecondition years and as long as population is not extinct
     while(mytime < convergecondition*365 & sum(sqdf$newbiomass) > 0){
@@ -311,8 +321,16 @@ sq_sim <- function(returnbiomass, convergecondition = NULL, decay, myrc){
       #Total biomass at start of season
       if(round(mod(mytime, 365)) %in% c(32, 215)){
         
+        #adult and juv biomass at start of season
+        myadultbiomass_start <- sum(sqdf$newbiomass[sqdf$newlength >= 12])
+        myjuvbiomass_start <- sum(sqdf$newbiomass[sqdf$newlength < 12])
+        
+        #year and season of this season
+        myseason <- ifelse(round(mod(mytime, 365)) == 32, 1, 2)
+        myyear <- ceiling(mytime / 365)
+        
         #If adult biomass < 4, don't allow fishing this season
-        if(sum(sqdf$newbiomass[sqdf$newlength >= 12] < 4)){
+        if(sum(sqdf$newbiomass[sqdf$newlength >= 12]) < 4){
         
           myhpd <- 0
           
@@ -334,6 +352,19 @@ sq_sim <- function(returnbiomass, convergecondition = NULL, decay, myrc){
       #Juvenile and adult total biomass this period 
       juvbiomass <- sum(sqdf$newbiomass[sqdf$newlength < 12])
       adultbiomass <- sum(sqdf$newbiomass[sqdf$newlength >= 12])  
+      
+      #Calculate total harvest this period
+      harvest_today <- mutate(sqdf, 
+                              harvest_today = if_else(newlength < 12,
+                                                      #harvest_juv_frac % of total harvest (myhpd) comes from juveniles. 
+                                                      #Then allocate that harvest across juveniles in proportion to relative biomass of each length interval ((newbiomass / juvbiomass))
+                                                      myhpd*harvest_juv_frac*(newbiomass / juvbiomass),
+                                                      myhpd*(1 - harvest_juv_frac)*(newbiomass / adultbiomass)
+                              )) %>% 
+        summarise(sum(harvest_today)) %>% as.matrix() %>% as.numeric()
+      
+      #Add today's harvest to harvest_counter
+      harvestcounter <- harvestcounter + harvest_today
          
       #Harvest
       sqdf <- sqdf %>% 
@@ -354,8 +385,33 @@ sq_sim <- function(returnbiomass, convergecondition = NULL, decay, myrc){
       
       }else{
         #Otherwise we are not in fishing season and just update biomass to reflect newweight and newprop
+        
+        #If end of season, record adult and juv biomass
+        #and add a row to harvestdf to record values of interest
+        if(round(mod(mytime, 365)) %in% c(123, 306)){
+          
+          #adult and juv biomass at end of season
+          myadultbiomass_end <- sum(sqdf$newbiomass[sqdf$newlength >= 12])
+          myjuvbiomass_end <- sum(sqdf$newbiomass[sqdf$newlength < 12])
+          
+          harvestdf <- bind_rows(harvestdf, 
+                                 data.frame(
+                                   year = myyear, season = myseason, 
+                                   adultbiomass_start = myadultbiomass_start,
+                                   juvbiomass_start = myjuvbiomass_start,
+                                   adultbiomass_end = myadultbiomass_end,
+                                   juvbiomass_end = myjuvbiomass_end,
+                                   harvest = harvestcounter
+                                 ))
+          
+          #Reset harvestcounter for next season
+          harvestcounter <- 0
+          
+        }
+        
         sqdf <- mutate(sqdf, newbiomass = newweight*newprop)
       }
+      
       
       #which rows have negative newprop? that means there are no more individuals of this length bin
       whichneg <- which(sqdf$newprop < 0)
@@ -401,9 +457,11 @@ sq_sim <- function(returnbiomass, convergecondition = NULL, decay, myrc){
     out <- data.frame(eqbiomass = sum(sqdf$newbiomass), 
                       sim_days = mytime)
   } else{
-    #Otherwise return equilibrium population
-    out <- sqdf %>% 
-      mutate(sim_days = mytime)
+    #Otherwise return equilibrium population and harvestdf
+    out <- list(
+      sqdf %>% 
+      mutate(sim_days = mytime),
+      harvestdf)
   }
   
   return(out)
@@ -414,9 +472,9 @@ sq_sim <- function(returnbiomass, convergecondition = NULL, decay, myrc){
 #Since recruitment constant is made up, while fishing mortality comes from data and natural mortality
 #comes from Salvatteci and Mendo (2005), choose the recruitment constant such that 
 #biomass after 100 years is close to initial biomass. 
-plan(multisession, workers = 8)
+plan(multisession, workers = 10)
 
-rclist <- future_map(seq(from = 3.75, to = 4, by = 0.01), function(x){
+rclist <- future_map(seq(from = 6.75, to = 7.25, by = 0.01), function(x){
   
   eqbiomass <- try(sq_sim(returnbiomass = T, convergecondition = 100, 
                           decay = 0.8, myrc = recruit_constant * x)) %>% 
@@ -424,54 +482,34 @@ rclist <- future_map(seq(from = 3.75, to = 4, by = 0.01), function(x){
 
 })
 
-rcdf <- bind_rows(rclist)
-#eqbiomass sim_days rcfactor
-# 1   0.2139842    36500     3.75
-# 2   0.2596387    36500     3.76
-# 3   0.3148977    36500     3.77
-# 4   0.3817533    36500     3.78
-# 5   0.4626048    36500     3.79
-# 6   0.5603413    36500     3.80
-# 7   0.6784393    36500     3.81
-# 8   0.8210816    36500     3.82
-# 9   0.9932975    36500     3.83
-# 10  1.2011329    36500     3.84
-# 11  1.4518518    36500     3.85
-# 12  1.7541791    36500     3.86
-# 13  2.1185896    36500     3.87
-# 14  2.5576545    36500     3.88
-# 15  3.0864548    36500     3.89
-# 16  3.7230752    36500     3.90
-# 17  4.4891939    36500     3.91
-# 18  5.4107871    36500     3.92
-# 19  6.5189684    36500     3.93
-# 20  7.8509910    36500     3.94
-# 21  9.4514419    36500     3.95
-# 22 11.3736657    36500     3.96
-# 23 13.6814605    36500     3.97
-# 24 16.4510973    36500     3.98
-# 25 19.7737247    36500     3.99
-# 26 23.7582302    36500     4.00
+(rcdf <- bind_rows(rclist))
 
-#Pretty close to cubic relationship
-ggplot(data = rcdf, aes(x = rcfactor, y = eqbiomass)) + 
-  geom_line() + 
-  geom_smooth(formula = y~poly(x, degree = 3), se = F, method = 'lm')
+
 
 #Look at one simulation
-g <- sq_sim(F, convergecondition = 100, decay = 0.8, myrc = recruit_constant * 3.945)
+g <- sq_sim(F, convergecondition = 100, decay = 0.8, myrc = recruit_constant * 7)
 
-sum(g$newbiomass)
+sum(g[[1]]$newbiomass)
+
+g[[2]] %>% tail()
+
+#3.945 too small
+#6 too small (5.6)
+#6.5 too small, but also smaller than 6! (4.7). That's because fishing continues at 6.5, 
+#but stops at 6. Maybe modify harvest rule s.t. if adult < 4, stop fishing until adult >= 5.
+#7.5 is too large (230).
+#8 is too large (4108)
+#10 is too large (97904122)
 
 #Plot number of individuals by length
 ggplot() + 
   geom_line(data = props, aes(x = length, y = prop)) + 
-  geom_line(data = g, aes(x = newlength, y = newprop), col = 'red') 
+  geom_line(data = g[[1]], aes(x = newlength, y = newprop), col = 'red') 
 
 #Plot biomass by length
 ggplot() + 
   geom_line(data = props, aes(x = length, y = biomass)) + 
-  geom_line(data = g, aes(x = newlength, y = newbiomass), col = 'red')
+  geom_line(data = g[[1]], aes(x = newlength, y = newbiomass), col = 'red')
 
 
 #How does changing harvest_juv_frac affect final biomass and harvest?
