@@ -1,11 +1,15 @@
 #Digitize number of individuals in each length bin at start of first season 2017
 #This is population distribution (in the water), not distribution of catch
 
+usethis::use_git_config(user.name = "englander", user.email = "genglander@ucsb.edu")
+credentials::set_github_pat("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")
+
 rm(list=ls())
 setwd("C:/Users/gabee/Documents/replication_closures")
 
 library(dplyr); library(sf); library(ggplot2); library(lubridate)
 library(readr); library(purrr); library(readxl); library(imager)
+library(furrr)
 
 #Peru time
 Sys.setenv(TZ='America/Lima')
@@ -410,27 +414,97 @@ sq_sim <- function(returnbiomass, convergecondition = NULL, decay, myrc){
 #Since recruitment constant is made up, while fishing mortality comes from data and natural mortality
 #comes from Salvatteci and Mendo (2005), choose the recruitment constant such that 
 #biomass after 100 years is close to initial biomass. 
-rcdf <- map_df(from = 2, to = 4, by = 0.25, function(x){
-  
-  eqbiomass <- sq_sim(returnbiomass = T, convergecondition = 100, decay = 0.8, myrc = recruit_constant * 4)
+plan(multisession, workers = 8)
 
-  data.frame(eqbiomass = eqbiomass, rcfactor = x)
+rclist <- future_map(seq(from = 3.75, to = 4, by = 0.01), function(x){
+  
+  eqbiomass <- try(sq_sim(returnbiomass = T, convergecondition = 100, 
+                          decay = 0.8, myrc = recruit_constant * x)) %>% 
+    mutate(rcfactor = x)
+
+})
+
+rcdf <- bind_rows(rclist)
+#eqbiomass sim_days rcfactor
+# 1   0.2139842    36500     3.75
+# 2   0.2596387    36500     3.76
+# 3   0.3148977    36500     3.77
+# 4   0.3817533    36500     3.78
+# 5   0.4626048    36500     3.79
+# 6   0.5603413    36500     3.80
+# 7   0.6784393    36500     3.81
+# 8   0.8210816    36500     3.82
+# 9   0.9932975    36500     3.83
+# 10  1.2011329    36500     3.84
+# 11  1.4518518    36500     3.85
+# 12  1.7541791    36500     3.86
+# 13  2.1185896    36500     3.87
+# 14  2.5576545    36500     3.88
+# 15  3.0864548    36500     3.89
+# 16  3.7230752    36500     3.90
+# 17  4.4891939    36500     3.91
+# 18  5.4107871    36500     3.92
+# 19  6.5189684    36500     3.93
+# 20  7.8509910    36500     3.94
+# 21  9.4514419    36500     3.95
+# 22 11.3736657    36500     3.96
+# 23 13.6814605    36500     3.97
+# 24 16.4510973    36500     3.98
+# 25 19.7737247    36500     3.99
+# 26 23.7582302    36500     4.00
+
+#Pretty close to cubic relationship
+ggplot(data = rcdf, aes(x = rcfactor, y = eqbiomass)) + 
+  geom_line() + 
+  geom_smooth(formula = y~poly(x, degree = 3), se = F, method = 'lm')
+
+#Look at one simulation
+g <- sq_sim(F, convergecondition = 100, decay = 0.8, myrc = recruit_constant * 3.945)
+
+sum(g$newbiomass)
+
+#Plot number of individuals by length
+ggplot() + 
+  geom_line(data = props, aes(x = length, y = prop)) + 
+  geom_line(data = g, aes(x = newlength, y = newprop), col = 'red') 
+
+#Plot biomass by length
+ggplot() + 
+  geom_line(data = props, aes(x = length, y = biomass)) + 
+  geom_line(data = g, aes(x = newlength, y = newbiomass), col = 'red')
+
+
+#How does changing harvest_juv_frac affect final biomass and harvest?
+
+
+
+#Search over smaller range to get final biomass even closer to initial biomass
+plan(multisession, workers = 8)
+
+rclist <- future_map(seq(from = 3.945, to = 3.95, by = 0.0001), function(x){
+  
+  eqbiomass <- try(sq_sim(returnbiomass = T, convergecondition = 100, 
+                          decay = 0.8, myrc = recruit_constant * x)) %>% 
+    mutate(rcfactor = x)
   
 })
 
+rcdf <- bind_rows(rclist)
+
+reg <- lm(eqbiomass ~ rcfactor3, data = mutate(rcdf, rcfactor3 = rcfactor^3))
+
+#Best rcfactor is between 3.94 and 3.95, but closer to 3.95
+rcinterp <- data.frame(rcfactor = seq(from = 3.945, to = 3.99, by = .001)) %>% 
+  mutate(rcfactor3 = rcfactor^3)
+
+predict(reg, rcfactor3 = rcinterp$rcfactor3)
+predict(reg, rcfactor3 = c(1, 2))
 
 
 
 
 
 
-
-
-
-
-
-(g <- sq_sim(T, convergecondition = 50, decay = 0.8))
-sample_n(g, 10)
 #Given sqdf and number of additional days to run simulation, run the simulation 
 #for those additional days and output a new sqdf
 #mysqdf <- sq_sim(F, 1/365, .8); adddays <- 1; decay <- .8
