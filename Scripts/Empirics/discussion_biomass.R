@@ -637,10 +637,48 @@ biomassdf$scenario <- relevel(biomassdf$scenario, ref = 'counterfactual')
 #as measured in March 2017, in status quo at end of simulation,
 #and in counterfactual at end of simulation
 propdf <- bind_rows(
-  #dplyr::select(props, length, prop) %>% mutate(scenario = 'measured, 2017'), 
+  dplyr::select(props, length, prop) %>% mutate(scenario = 'measured, 2017'), 
   g1[[1]] %>% dplyr::select(newprop, newlength) %>% mutate(scenario = 'status quo') %>%
     #Normalize proportion to 1 (currently units are normalized number of individuals)
-    mutate(newprop = newprop / sum(g1[[1]]$newprop)) %>% 
+    #mutate(newprop = newprop / sum(g1[[1]]$newprop)) %>% 
+    rename(prop = newprop, length = newlength),
+  g0[[1]] %>% dplyr::select(newprop, newlength) %>% mutate(scenario = 'counterfactual') %>%
+    #Normalize proportion to 1 (currently units are normalized number of individuals)
+    #mutate(newprop = newprop / sum(g0[[1]]$newprop)) %>% 
+    rename(prop = newprop, length = newlength)
+)
+
+propdf$scenario <- as.factor(propdf$scenario)
+propdf$scenario <- relevel(propdf$scenario, ref = 'status quo')
+propdf$scenario <- relevel(propdf$scenario, ref = 'counterfactual')
+
+#Calculate number of individuals rather than prop, as measured in 2017
+n_2017 <- 7.78 * 10^6 * 10^6 /#biomass in g
+  mutate(props, avgweight = prop*weight) %>%   #Average weight of individual in grams, measured in 2017.
+  summarise(sum(avgweight)) %>%  #prop already sums to 1 so don't need to divide by sum(prop)
+  as.matrix() %>% as.numeric()
+
+propdf <- mutate(propdf, n = prop * n_2017)
+
+group_by(propdf, scenario) %>% 
+  summarise(sum(n))
+
+ggplot(data = propdf, aes(x = length, y = n, linetype = scenario)) + 
+  geom_line() + 
+  myThemeStuff + 
+  ggtitle("Length distribution of population") + 
+  labs(tag = "c") + theme(plot.tag.position = c(.05, 1), 
+                          plot.margin = unit(c(.05,0,.1,0.04),"in")) + 
+  scale_linetype_manual(values = c("dotted", "solid", 'dashed')) + 
+  ylab("Number of individuals") + 
+  scale_x_continuous("Length (cm)", breaks = seq(from = 7, to = 18, by = 1))
+
+
+
+#Fourth plot is biomass
+beqdf <- bind_rows(
+  dplyr::select(props, length, biomass) %>% mutate(scenario = 'measured, 2017'), 
+  g1[[1]] %>% dplyr::select(newbiomass, newlength) %>% mutate(scenario = 'status quo') %>%
     rename(prop = newprop, length = newlength),
   g0[[1]] %>% dplyr::select(newprop, newlength) %>% mutate(scenario = 'counterfactual') %>%
     #Normalize proportion to 1 (currently units are normalized number of individuals)
@@ -660,10 +698,6 @@ ggplot(data = propdf, aes(x = length, y = prop, linetype = scenario)) +
   scale_linetype_manual(values = c("dotted", "solid")) + 
   ylab("Proportion of individuals") + 
   scale_x_continuous("Length (cm)", breaks = seq(from = 7, to = 18, by = 1))
-
-
-
-
   
 
 
