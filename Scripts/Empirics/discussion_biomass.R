@@ -648,10 +648,6 @@ propdf <- bind_rows(
     rename(prop = newprop, length = newlength)
 )
 
-propdf$scenario <- as.factor(propdf$scenario)
-propdf$scenario <- relevel(propdf$scenario, ref = 'status quo')
-propdf$scenario <- relevel(propdf$scenario, ref = 'counterfactual')
-
 #Group individuals into common length intervals
 #status quo and counterfactual are already in common length intervals
 unique(propdf$length[propdf$scenario == 'counterfactual'])[unique(propdf$length[propdf$scenario == 'counterfactual']) %in% 
@@ -665,10 +661,8 @@ commonintervals <- unique(propdf$length[propdf$scenario == 'counterfactual'])
 #First aggregate measured 2017 values to original interval
 m17 <- filter(propdf, scenario == 'measured, 2017')
 
-
-rm(x, lb, ub, out, nextinter, belowfrac, firstrow, myrow, previnter, secondrow, abovefrac)
 #Distribute proportion uniformly over interval defined by status quo and counterfactual intervals
-m17 <- map_df(1:100, function(x){
+m17 <- map_df(1:nrow(m17), function(x){
   
   myrow <- m17[x,]
   
@@ -684,48 +678,19 @@ m17 <- map_df(1:100, function(x){
   if(round(ub - myrow$length, digits = 4) < 0.01 & 
      min(myrow$length - lb, ub - myrow$length) != 0){ #excluding length = 7
     
-    #If myrow$length below ub, 
-    #need to output two rows: density between mylength and ub, 
-    #and density between ub and next common interval
-    if(which(round(c(myrow$length - lb, ub - myrow$length), digits = 4) < 0.01) == 2){
-      
-      firstrow <- data.frame(length = seq(from = myrow$length, to = ub, by = 0.0001))
-      
-      #Fraction of original length interval that is below ub
-      belowfrac <- (ub - myrow$length) / .01
-      
-      firstrow <- mutate(firstrow, prop = (myrow$prop / nrow(firstrow)) * belowfrac)
-      
-      #Now sum to lb
-      firstrow <- data.frame(length = lb, prop = sum(firstrow$prop))
-      
-      #Then remainder goes to next interval
-      nextinter <- commonintervals[commonintervals > ub] %>% min()
-      
-      out <- bind_rows(firstrow, 
-                       data.frame(length = nextinter, prop = myrow$prop - firstrow$prop))
-    }else{
-      
-      #Otherwise myrow$length > ub and need to allocate some of mass to below interval
-      #First calculate mass above lb
-      secondrow <- data.frame(length = seq(from = lb, to = myrow$length, by = 0.0001))
-      
-      #Fraction of original length interval that is above lb
-      abovefrac <- (myrow$length - lb) / .01
-      
-      secondrow <- mutate(secondrow, prop = (myrow$prop / nrow(secondrow)) * abovefrac)
-      
-      #Now sum to lb
-      secondrow <- data.frame(length = lb, prop = sum(secondrow$prop))
-      
-      #Then remainder goes to previous
-      previnter <- commonintervals[commonintervals < lb] %>% max()
-      
-      out <- bind_rows(secondrow, 
-                       data.frame(length = previnter, prop = myrow$prop - secondrow$prop))
-      
-      
-    }
+    firstrow <- data.frame(length = seq(from = myrow$length, to = ub, by = 0.00001))
+    
+    #Fraction of original length interval that is below ub
+    belowfrac <- (ub - myrow$length) / .01
+    
+    firstrow <- mutate(firstrow, prop = (myrow$prop / nrow(firstrow)) * belowfrac)
+    
+    #Now sum to lb
+    firstrow <- data.frame(length = lb, prop = sum(firstrow$prop))
+    
+    #Then remainder goes to next interval (ub)
+    out <- bind_rows(firstrow, 
+                     data.frame(length = ub, prop = myrow$prop - firstrow$prop))
       
   }else{
     
@@ -736,40 +701,31 @@ m17 <- map_df(1:100, function(x){
   
   out
   
-}) #%>% 
-  #group_by(length) %>% 
-  #summarise(prop = sum(prop))
+}) %>% 
+  group_by(length) %>% 
+  summarise(prop = sum(prop))
 
-arrange(m17, length) %>% head()
+#Replace measured 2017 values in propdf with those in m17
+propdf <- bind_rows(
+  m17 %>% mutate(scenario = "measured, 2017"), 
+                    filter(propdf, scenario != "measured, 2017")
+)
 
-group_by(m17, length) %>% summarise(prop = sum(prop))
+group_by(propdf, scenario) %>% summarise(sum(prop))
 
-#Given row of propdf, save the 
+propdf$scenario <- as.factor(propdf$scenario)
+propdf$scenario <- relevel(propdf$scenario, ref = 'status quo')
+propdf$scenario <- relevel(propdf$scenario, ref = 'counterfactual')
 
-propdf$commonlength <- cut(propdf$length, , include.lowest = T)
-
-#Count number of 
-
-#Calculate number of individuals rather than prop, as measured in 2017
-n_2017 <- 7.78 * 10^6 * 10^6 /#biomass in g
-  mutate(props, avgweight = prop*weight) %>%   #Average weight of individual in grams, measured in 2017.
-  summarise(sum(avgweight)) %>%  #prop already sums to 1 so don't need to divide by sum(prop)
-  as.matrix() %>% as.numeric()
-
-propdf <- mutate(propdf, n = prop * n_2017)
-
-group_by(propdf, scenario) %>% 
-  summarise(sum(n))
-
-ggplot(data = propdf, aes(x = length, y = n, linetype = scenario)) + 
+propplot <- ggplot(data = propdf, aes(x = length, y = prop, linetype = scenario)) + 
   geom_line() + 
   myThemeStuff + 
-  ggtitle("Length distribution of population") + 
+  ggtitle("Proportion of individuals in each growth-day length interval") + 
   labs(tag = "c") + theme(plot.tag.position = c(.05, 1), 
                           plot.margin = unit(c(.05,0,.1,0.04),"in")) + 
   scale_linetype_manual(values = c("dotted", "solid", 'dashed')) + 
-  ylab("Number of individuals") + 
-  scale_x_continuous("Length (cm)", breaks = seq(from = 7, to = 18, by = 1))
+  ylab("Proportion of individuals") + 
+  scale_x_continuous("Length at age (cm)", breaks = seq(from = 7, to = 18, by = 1))
 
 
 
