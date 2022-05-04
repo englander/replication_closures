@@ -558,7 +558,7 @@ harvestdf <- bind_rows(
     mutate(total = adult + juvenile) %>%
     pivot_longer(cols = c(total, adult, juvenile), names_to = 'harvesttype', values_to = 'harvestquantity'),
   g0[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year), 
-                     scenario = 'status quo') %>% 
+                     scenario = 'counterfactual') %>% 
     dplyr::select(yeartime, scenario, adultharvest, juvharvest) %>% 
     rename(adult = adultharvest, juvenile = juvharvest) %>%
     mutate(total = adult + juvenile) %>%
@@ -566,27 +566,27 @@ harvestdf <- bind_rows(
 )
 
 #Scale harvest into millions of tons. initial biomass is 7.78 million tons
-biomassdf <- mutate(biomassdf, biomassquantity = 
-                      biomassquantity * (7.78 / sum(props$biomass)))
+harvestdf <- mutate(harvestdf, harvestquantity = 
+                      harvestquantity * (7.78 / sum(props$biomass)))
 
-biomassdf$biomasstype <- as.factor(biomassdf$biomasstype)
-biomassdf$biomasstype <- relevel(biomassdf$biomasstype, ref = "total")
+harvestdf$harvesttype <- as.factor(harvestdf$harvesttype)
+harvestdf$harvesttype <- relevel(harvestdf$harvesttype, ref = "total")
 
-biomassdf$scenario <- as.factor(biomassdf$scenario)
-biomassdf$scenario <- relevel(biomassdf$scenario, ref = 'counterfactual')
+harvestdf$scenario <- as.factor(harvestdf$scenario)
+harvestdf$scenario <- relevel(harvestdf$scenario, ref = 'counterfactual')
 
 
-(biomass_time <- ggplot(data = biomassdf, 
-                        aes(x = yeartime, y = biomassquantity, col = biomasstype, linetype = scenario)) + 
+(harvest_time <- ggplot(data = harvestdf, 
+                        aes(x = yeartime, y = harvestquantity, col = harvesttype, linetype = scenario)) + 
     geom_line() +
     myThemeStuff + 
     scale_x_continuous("Year", breaks = c(1, 6, 11, 16, 20),
                        labels = c(2017, 2022, 2027, 2032, 2036)) + 
-    scale_y_continuous("Biomass (millions of tons)") + 
-    scale_color_manual("biomass value", values = c("black", "dodgerblue4","orange1")) + 
+    scale_y_continuous("Harvest (millions of tons)") + 
+    scale_color_manual("Harvest type", values = c("black", "dodgerblue4","orange1")) + 
     scale_linetype_manual(values = c("dotted", "solid")) + 
-    ggtitle("Biomass over time") + 
-    labs(tag = "b") + theme(plot.tag.position = c(.05, 1), 
+    ggtitle("Harvest each season") + 
+    labs(tag = "a") + theme(plot.tag.position = c(.05, 1), 
                             plot.margin = unit(c(.05,0.04,.1,0),"in")))
 
 
@@ -630,8 +630,41 @@ biomassdf$scenario <- relevel(biomassdf$scenario, ref = 'counterfactual')
   scale_linetype_manual(values = c("dotted", "solid")) + 
   ggtitle("Biomass at start of season") + 
   labs(tag = "b") + theme(plot.tag.position = c(.05, 1), 
-                          plot.margin = unit(c(.05,0.04,.1,0),"in")))
+                          plot.margin = unit(c(.05,0,.1,0.04),"in")))
 
+
+#Third plot proportion of individuals in each length interval
+#as measured in March 2017, in status quo at end of simulation,
+#and in counterfactual at end of simulation
+propdf <- bind_rows(
+  dplyr::select(props, length, prop) %>% mutate(scenario = 'measured, 2017'), 
+  g1[[1]] %>% dplyr::select(newprop, newlength) %>% mutate(scenario = 'status quo') %>%
+    #Normalize proportion to 1 (currently units are normalized number of individuals)
+    mutate(newprop = newprop / sum(g1[[1]]$newprop)) %>% 
+    rename(prop = newprop, length = newlength),
+  g0[[1]] %>% dplyr::select(newprop, newlength) %>% mutate(scenario = 'counterfactual') %>%
+    #Normalize proportion to 1 (currently units are normalized number of individuals)
+    mutate(newprop = newprop / sum(g0[[1]]$newprop)) %>% 
+    rename(prop = newprop, length = newlength)
+)
+
+propdf$scenario <- as.factor(propdf$scenario)
+propdf$scenario <- relevel(propdf$scenario, ref = 'status quo')
+propdf$scenario <- relevel(propdf$scenario, ref = 'counterfactual')
+
+
+ggplot(data = propdf, aes(x = length, y = prop, linetype = scenario)) + 
+  geom_line() + 
+  myThemeStuff + 
+  ggtitle("Length distribution of population") + 
+  labs(tag = "c") + theme(plot.tag.position = c(.05, 1), 
+                          plot.margin = unit(c(.05,0,.1,0.04),"in")) + 
+  scale_linetype_manual(values = c("dotted", "solid", "dashed"))
+
+
+
+
+  
 
 
 
