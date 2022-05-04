@@ -482,65 +482,75 @@ sq_sim <- function(returnbiomass, convergecondition, decay, myrc, myjuvfrac){
 # })
 # 
 # rcdf <- bind_rows(rclist)
+# 125  8.667984    36500    6.990
+# 126  8.779539    36500    6.991
+# 127  8.892514    36500    6.992
+# 128  9.006928    36500    6.993
+# 129  9.122798    36500    6.994
 
-#recruit_constant * 6.853 gives biomass after 20 years very close to initial biomass:
 
 #Status quo simulation over 100 years
-g1 <- sq_sim(F, convergecondition = 100, decay = 0.8, myrc = recruit_constant * 6.9, 
+sim1 <- sq_sim(F, convergecondition = 20, decay = 0.8, myrc = recruit_constant * 6.853, 
             myjuvfrac = harvest_juv_frac)
 
-sum(g1[[1]]$newbiomass) #8.96961
+sum(sim1[[1]]$newbiomass) #8.96961
 #Compare to status quo initial biomass
 sum(props$biomass) #8.967002
 
 #Plot number of individuals by length
 ggplot() + 
   geom_line(data = props, aes(x = length, y = prop)) + 
-  geom_line(data = g1[[1]], aes(x = newlength, y = newprop), col = 'red') 
+  geom_line(data = sim1[[1]], aes(x = newlength, y = newprop), col = 'red') 
 
 #Plot biomass by length
 ggplot() + 
   geom_line(data = props, aes(x = length, y = biomass)) + 
-  geom_line(data = g1[[1]], aes(x = newlength, y = newbiomass), col = 'red')
+  geom_line(data = sim1[[1]], aes(x = newlength, y = newbiomass), col = 'red')
 
 #Juvenile and adult harvest over time
-ggplot(data = g1[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year)) %>% 
+ggplot(data = sim1[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year)) %>% 
          pivot_longer(cols = c(juvharvest, adultharvest), names_to = 'harvesttype', values_to = 'harvest') %>% 
          mutate(harvesttype = as.factor(harvesttype)), 
        aes(x = yeartime, y = harvest, col = harvesttype)
          ) + 
   geom_line()
 
+#Biomass over time
+ggplot(data = sim1[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year)) %>% 
+         pivot_longer(cols = c(adultbiomass_start, juvbiomass_start), names_to = 'harvesttype', values_to = 'harvest') %>% 
+         mutate(harvesttype = as.factor(harvesttype)), 
+       aes(x = yeartime, y = harvest, col = harvesttype)
+) + 
+  geom_line()
+
 #How does changing harvest_juv_frac affect final biomass and harvest?
 #It seems like it reduces it. biomass and harvest would be higher if caught fewer juveniles.
-g0 <- sq_sim(F, convergecondition = 20, decay = 0.8, myrc = recruit_constant * 6.853, 
+sim0 <- sq_sim(F, convergecondition = 20, decay = 0.8, myrc = recruit_constant * 6.853, 
              myjuvfrac = harvest_juv_frac / 1.44)
 
-sum(g0[[1]]$newbiomass) #13.81285
-sum(g0[[2]]$adultharvest) + sum(g0[[2]]$juvharvest) #143.3653
+sum(sim0[[1]]$newbiomass) #13.81285
+sum(sim0[[2]]$adultharvest) + sum(sim0[[2]]$juvharvest) #143.3653
 
-g1 <- sq_sim(F, convergecondition = 20, decay = 0.8, myrc = recruit_constant * 6.853, 
-             myjuvfrac = harvest_juv_frac)
-
-sum(g1[[1]]$newbiomass) #8.96961
-sum(g1[[2]]$adultharvest) + sum(g1[[2]]$juvharvest) #117.6033
+#compare to status quo
+sum(sim1[[1]]$newbiomass) #8.96961
+sum(sim1[[2]]$adultharvest) + sum(sim1[[2]]$juvharvest) #117.6033
 
 #compare distributions
 ggplot() + 
-  geom_line(data = g0[[1]], aes(x = newlength, y = newprop), col = 'red') + 
-  geom_line(data = g1[[1]], aes(x = newlength, y = newprop)) 
+  geom_line(data = sim0[[1]], aes(x = newlength, y = newprop), col = 'red') + 
+  geom_line(data = sim1[[1]], aes(x = newlength, y = newprop)) 
 
 #Plot biomass by length
 ggplot() + 
-  geom_line(data = g0[[1]], aes(x = newlength, y = newbiomass), col = 'red') + 
-  geom_line(data = g1[[1]], aes(x = newlength, y = newbiomass))
+  geom_line(data = sim0[[1]], aes(x = newlength, y = newbiomass), col = 'red') + 
+  geom_line(data = sim1[[1]], aes(x = newlength, y = newbiomass))
 
 #Harvest start out same, and then overharvesting of juveniles causes divergence
 ggplot() + 
-  geom_line(data = g0[[2]] %>% 
+  geom_line(data = sim0[[2]] %>% 
               mutate(yeartime = if_else(season == 2, year + .5, year)),
             aes(x = yeartime, y = harvest), col = 'red') + 
-  geom_line(data = g1[[2]] %>% 
+  geom_line(data = sim1[[2]] %>% 
               mutate(yeartime = if_else(season == 2, year + .5, year)),
             aes(x = yeartime, y = harvest))
 
@@ -551,13 +561,13 @@ ggplot() +
 #First plot is total harvest, adult harvest, and juvenile harvest each season over time, 
 #in 
 harvestdf <- bind_rows(
-  g1[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year), 
+  sim1[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year), 
                      scenario = 'status quo') %>% 
     dplyr::select(yeartime, scenario, adultharvest, juvharvest) %>% 
     rename(adult = adultharvest, juvenile = juvharvest) %>%
     mutate(total = adult + juvenile) %>%
     pivot_longer(cols = c(total, adult, juvenile), names_to = 'harvesttype', values_to = 'harvestquantity'),
-  g0[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year), 
+  sim0[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year), 
                      scenario = 'counterfactual') %>% 
     dplyr::select(yeartime, scenario, adultharvest, juvharvest) %>% 
     rename(adult = adultharvest, juvenile = juvharvest) %>%
@@ -582,25 +592,25 @@ harvestdf$scenario <- relevel(harvestdf$scenario, ref = 'counterfactual')
     myThemeStuff + 
     scale_x_continuous("Year", breaks = c(1, 6, 11, 16, 20),
                        labels = c(2017, 2022, 2027, 2032, 2036)) + 
-    scale_y_continuous("Harvest (millions of tons)") + 
-    scale_color_manual("Harvest type", values = c("black", "dodgerblue4","orange1")) + 
+    scale_y_continuous("Catch (millions of tons)") + 
+    scale_color_manual("Catch type", values = c("black", "dodgerblue4","orange1")) + 
     scale_linetype_manual(values = c("dotted", "solid")) + 
-    ggtitle("Harvest each season") + 
+    ggtitle("Catch each season") + 
     labs(tag = "a") + theme(plot.tag.position = c(.05, 1), 
-                            plot.margin = unit(c(.05,0.04,.1,0),"in")))
+                            plot.margin = unit(c(.05,0.02,.1,0.02),"in")))
 
 
 
 #Second plot is total biomass, adult biomass, and juv biomass in status quo and counterfactual 
 #over time. Use biomass recorded at start of each season.
 biomassdf <- bind_rows(
-  g1[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year), 
+  sim1[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year), 
                      scenario = 'status quo') %>% 
     dplyr::select(yeartime, scenario, adultbiomass_start, juvbiomass_start) %>% #
     rename(adult = adultbiomass_start, juvenile = juvbiomass_start) %>%
     mutate(total = adult + juvenile) %>%
     pivot_longer(cols = c(total, adult, juvenile), names_to = 'biomasstype', values_to = 'biomassquantity'),
-  g0[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year), 
+  sim0[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year), 
                      scenario = 'counterfactual') %>% 
     dplyr::select(yeartime, scenario, adultbiomass_start, juvbiomass_start) %>% #
     rename(adult = adultbiomass_start, juvenile = juvbiomass_start) %>%
@@ -630,7 +640,7 @@ biomassdf$scenario <- relevel(biomassdf$scenario, ref = 'counterfactual')
   scale_linetype_manual(values = c("dotted", "solid")) + 
   ggtitle("Biomass at start of season") + 
   labs(tag = "b") + theme(plot.tag.position = c(.05, 1), 
-                          plot.margin = unit(c(.05,0,.1,0.04),"in")))
+                          plot.margin = unit(c(.1,0.02,.05,0.02),"in")))
 
 
 #Third plot proportion of individuals in each length interval
@@ -638,13 +648,13 @@ biomassdf$scenario <- relevel(biomassdf$scenario, ref = 'counterfactual')
 #and in counterfactual at end of simulation
 propdf <- bind_rows(
   dplyr::select(props, length, prop) %>% mutate(scenario = 'measured, 2017'), 
-  g1[[1]] %>% dplyr::select(newprop, newlength) %>% mutate(scenario = 'status quo') %>%
+  sim1[[1]] %>% dplyr::select(newprop, newlength) %>% mutate(scenario = 'status quo') %>%
     #Normalize proportion to 1 (currently units are normalized number of individuals)
-    mutate(newprop = newprop / sum(g1[[1]]$newprop)) %>% 
+    mutate(newprop = newprop / sum(sim1[[1]]$newprop)) %>% 
     rename(prop = newprop, length = newlength),
-  g0[[1]] %>% dplyr::select(newprop, newlength) %>% mutate(scenario = 'counterfactual') %>%
+  sim0[[1]] %>% dplyr::select(newprop, newlength) %>% mutate(scenario = 'counterfactual') %>%
     #Normalize proportion to 1 (currently units are normalized number of individuals)
-    mutate(newprop = newprop / sum(g0[[1]]$newprop)) %>% 
+    mutate(newprop = newprop / sum(sim0[[1]]$newprop)) %>% 
     rename(prop = newprop, length = newlength)
 )
 
@@ -717,7 +727,7 @@ propdf$scenario <- as.factor(propdf$scenario)
 propdf$scenario <- relevel(propdf$scenario, ref = 'status quo')
 propdf$scenario <- relevel(propdf$scenario, ref = 'counterfactual')
 
-propplot <- ggplot(data = propdf, aes(x = length, y = prop, linetype = scenario)) + 
+(propplot <- ggplot(data = propdf, aes(x = length, y = prop, linetype = scenario)) + 
   geom_line() + 
   myThemeStuff + 
   ggtitle("Proportion of individuals in each growth-day length interval") + 
@@ -725,40 +735,39 @@ propplot <- ggplot(data = propdf, aes(x = length, y = prop, linetype = scenario)
                           plot.margin = unit(c(.05,0,.1,0.04),"in")) + 
   scale_linetype_manual(values = c("dotted", "solid", 'dashed')) + 
   ylab("Proportion of individuals") + 
-  scale_x_continuous("Length at age (cm)", breaks = seq(from = 7, to = 18, by = 1))
+  scale_x_continuous("Length at age (cm)", breaks = seq(from = 7, to = 18, by = 1)))
 
 
 
 #Fourth plot is biomass
 beqdf <- bind_rows(
   dplyr::select(props, length, biomass) %>% mutate(scenario = 'measured, 2017'), 
-  g1[[1]] %>% dplyr::select(newbiomass, newlength) %>% mutate(scenario = 'status quo') %>%
-    rename(prop = newprop, length = newlength),
-  g0[[1]] %>% dplyr::select(newprop, newlength) %>% mutate(scenario = 'counterfactual') %>%
-    #Normalize proportion to 1 (currently units are normalized number of individuals)
-    mutate(newprop = newprop / sum(g0[[1]]$newprop)) %>% 
-    rename(prop = newprop, length = newlength)
+  sim1[[1]] %>% dplyr::select(newbiomass, newlength) %>% mutate(scenario = 'status quo') %>%
+    rename(biomass = newbiomass, length = newlength),
+  sim0[[1]] %>% dplyr::select(newbiomass, newlength) %>% mutate(scenario = 'counterfactual') %>%
+    rename(biomass = newbiomass, length = newlength)
 )
 
-propdf$scenario <- as.factor(propdf$scenario)
-propdf$scenario <- relevel(propdf$scenario, ref = 'counterfactual')
+beqdf <- mutate(beqdf, biomass = 
+                  biomass * (7.78 / sum(props$biomass)))
 
-ggplot(data = propdf, aes(x = length, y = prop, linetype = scenario)) + 
+beqdf$scenario <- as.factor(beqdf$scenario)
+beqdf$scenario <- relevel(beqdf$scenario, ref = 'status quo')
+beqdf$scenario <- relevel(beqdf$scenario, ref = 'counterfactual')
+
+biomasseqplot <- ggplot(data = beqdf, aes(x = length, y = biomass, linetype = scenario)) + 
   geom_line() + 
   myThemeStuff + 
-  ggtitle("Length distribution of population") + 
-  labs(tag = "c") + theme(plot.tag.position = c(.05, 1), 
+  ggtitle("Biomass distribution of population") + 
+  labs(tag = "d") + theme(plot.tag.position = c(.05, 1), 
                           plot.margin = unit(c(.05,0,.1,0.04),"in")) + 
-  scale_linetype_manual(values = c("dotted", "solid")) + 
-  ylab("Proportion of individuals") + 
+  scale_linetype_manual(values = c("dotted", "solid", "dashed")) + 
+  ylab("Biomass (millions of tons)") + 
   scale_x_continuous("Length (cm)", breaks = seq(from = 7, to = 18, by = 1))
   
+#For now just output first two plots.
+tbt <- plot_grid(harvest_time, biomass_time, nrow=2, ncol=1, 
+                 rel_widths = c(1, 1))
 
-
-
-tbt <- plot_grid(leadplot, activeplot, lag1plot, 
-                 lag2plot, lag3plot, lag4plot, nrow=2, ncol=3, 
-                 rel_widths = c(1.01,1,1))
-
-ggsave(tbt, file=paste0("Output/Figures/figure8.png"),
+ggsave(tbt, file=paste0("Output/Figures/figuree1.png"),
        w=7,h=(7/1.69)*2, units = "in", dpi=1200)
