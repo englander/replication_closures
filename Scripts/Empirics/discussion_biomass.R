@@ -474,7 +474,7 @@ sq_sim <- function(returnbiomass, convergecondition, decay, myrc, myjuvfrac){
 # 
 # rclist <- future_map(seq(from = 6.75, to = 7, by = 0.001), function(x){
 #   
-#   eqbiomass <- try(sq_sim(returnbiomass = T, convergecondition = 20, 
+#   eqbiomass <- try(sq_sim(returnbiomass = T, convergecondition = 100, 
 #                           decay = 0.8, myrc = recruit_constant * x, 
 #                           myjuvfrac = harvest_juv_frac)) %>% 
 #     mutate(rcfactor = x)
@@ -485,8 +485,8 @@ sq_sim <- function(returnbiomass, convergecondition, decay, myrc, myjuvfrac){
 
 #recruit_constant * 6.853 gives biomass after 20 years very close to initial biomass:
 
-#Status quo simulation over 20 years
-g1 <- sq_sim(F, convergecondition = 20, decay = 0.8, myrc = recruit_constant * 6.853, 
+#Status quo simulation over 100 years
+g1 <- sq_sim(F, convergecondition = 100, decay = 0.8, myrc = recruit_constant * 6.9, 
             myjuvfrac = harvest_juv_frac)
 
 sum(g1[[1]]$newbiomass) #8.96961
@@ -637,7 +637,7 @@ biomassdf$scenario <- relevel(biomassdf$scenario, ref = 'counterfactual')
 #as measured in March 2017, in status quo at end of simulation,
 #and in counterfactual at end of simulation
 propdf <- bind_rows(
-  dplyr::select(props, length, prop) %>% mutate(scenario = 'measured, 2017'), 
+  #dplyr::select(props, length, prop) %>% mutate(scenario = 'measured, 2017'), 
   g1[[1]] %>% dplyr::select(newprop, newlength) %>% mutate(scenario = 'status quo') %>%
     #Normalize proportion to 1 (currently units are normalized number of individuals)
     mutate(newprop = newprop / sum(g1[[1]]$newprop)) %>% 
@@ -649,9 +649,7 @@ propdf <- bind_rows(
 )
 
 propdf$scenario <- as.factor(propdf$scenario)
-propdf$scenario <- relevel(propdf$scenario, ref = 'status quo')
 propdf$scenario <- relevel(propdf$scenario, ref = 'counterfactual')
-
 
 ggplot(data = propdf, aes(x = length, y = prop, linetype = scenario)) + 
   geom_line() + 
@@ -659,7 +657,9 @@ ggplot(data = propdf, aes(x = length, y = prop, linetype = scenario)) +
   ggtitle("Length distribution of population") + 
   labs(tag = "c") + theme(plot.tag.position = c(.05, 1), 
                           plot.margin = unit(c(.05,0,.1,0.04),"in")) + 
-  scale_linetype_manual(values = c("dotted", "solid", "dashed"))
+  scale_linetype_manual(values = c("dotted", "solid")) + 
+  ylab("Proportion of individuals") + 
+  scale_x_continuous("Length (cm)", breaks = seq(from = 7, to = 18, by = 1))
 
 
 
