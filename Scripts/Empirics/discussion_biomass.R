@@ -220,7 +220,7 @@ agelength <- function(age){
 #anchoveta >= 14 cm contribute 60% of eggs. 
 #So recruitment = rc*(.4*N_12-14 + .6*N_>=14)
 #Solve for recruitment constant (rc) that will allow me to calculate counterfactual recruitment
-#(using different values of N_12-14 and N_>=14 but same alpha)
+#(using different values of N_12-14 and N_>=14 but same constant)
 recruit_constant <- props$prop[props$length == 7] / (
   .4*sum(props$prop[props$length >= 12 & props$length < 14]) + 
     .6*sum(props$prop[props$length >= 14])
@@ -561,13 +561,13 @@ ggplot() +
 #First plot is total harvest, adult harvest, and juvenile harvest each season over time, 
 #in 
 harvestdf <- bind_rows(
-  sim1[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year), 
+  sim1[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5 + 76.5/365, year + 76.5/365), #make time in the middle of the season
                      scenario = 'status quo') %>% 
     dplyr::select(yeartime, scenario, adultharvest, juvharvest) %>% 
     rename(adult = adultharvest, juvenile = juvharvest) %>%
     mutate(total = adult + juvenile) %>%
     pivot_longer(cols = c(total, adult, juvenile), names_to = 'harvesttype', values_to = 'harvestquantity'),
-  sim0[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year), 
+  sim0[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5 + 76.5/365, year + 76.5/365), 
                      scenario = 'counterfactual') %>% 
     dplyr::select(yeartime, scenario, adultharvest, juvharvest) %>% 
     rename(adult = adultharvest, juvenile = juvharvest) %>%
@@ -604,18 +604,42 @@ harvestdf$scenario <- relevel(harvestdf$scenario, ref = 'counterfactual')
 #Second plot is total biomass, adult biomass, and juv biomass in status quo and counterfactual 
 #over time. Use biomass recorded at start of each season.
 biomassdf <- bind_rows(
-  sim1[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year), 
+  sim1[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5 + 31/365, year + 31/365), #start of season 
                      scenario = 'status quo') %>% 
-    dplyr::select(yeartime, scenario, adultbiomass_start, juvbiomass_start) %>% #
-    rename(adult = adultbiomass_start, juvenile = juvbiomass_start) %>%
-    mutate(total = adult + juvenile) %>%
-    pivot_longer(cols = c(total, adult, juvenile), names_to = 'biomasstype', values_to = 'biomassquantity'),
-  sim0[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, year), 
-                     scenario = 'counterfactual') %>% 
-    dplyr::select(yeartime, scenario, adultbiomass_start, juvbiomass_start) %>% #
-    rename(adult = adultbiomass_start, juvenile = juvbiomass_start) %>%
-    mutate(total = adult + juvenile) %>%
-    pivot_longer(cols = c(total, adult, juvenile), names_to = 'biomasstype', values_to = 'biomassquantity') 
+    dplyr::select(yeartime, scenario, adultbiomass_start, juvbiomass_start,
+                  adultbiomass_end, juvbiomass_end) %>%
+    mutate(total_start = adultbiomass_start + juvbiomass_start, 
+           total_end = adultbiomass_end + juvbiomass_end) %>%
+    pivot_longer(cols = c(total_start, total_end, adultbiomass_start, 
+                          juvbiomass_start, adultbiomass_end, juvbiomass_end),
+                 names_to = 'biomasstype', values_to = 'biomassquantity') %>% 
+    #If quantity is end, shift it forward 91/365 to end of season
+    mutate(yeartime = if_else(biomasstype %in% 
+                                c("total_end", "adultbiomass_end", "juvbiomass_end"),
+                              yeartime + 91/365, yeartime)) %>% 
+    mutate(biomasstype = case_when(
+      biomasstype %in% c("total_start","total_end") ~ "total",
+      biomasstype %in% c("adultbiomass_start","adultbiomass_end") ~ "adult",
+      biomasstype %in% c("juvbiomass_start","juvbiomass_end") ~ "juvenile"
+    )),
+  sim0[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5 + 31/365, year + 31/365), #start of season 
+                       scenario = 'counterfactual') %>% 
+    dplyr::select(yeartime, scenario, adultbiomass_start, juvbiomass_start,
+                  adultbiomass_end, juvbiomass_end) %>%
+    mutate(total_start = adultbiomass_start + juvbiomass_start, 
+           total_end = adultbiomass_end + juvbiomass_end) %>%
+    pivot_longer(cols = c(total_start, total_end, adultbiomass_start, 
+                          juvbiomass_start, adultbiomass_end, juvbiomass_end),
+                 names_to = 'biomasstype', values_to = 'biomassquantity') %>% 
+    #If quantity is end, shift it forward 91/365 to end of season
+    mutate(yeartime = if_else(biomasstype %in% 
+                                c("total_end", "adultbiomass_end", "juvbiomass_end"),
+                              yeartime + 91/365, yeartime)) %>% 
+    mutate(biomasstype = case_when(
+      biomasstype %in% c("total_start","total_end") ~ "total",
+      biomasstype %in% c("adultbiomass_start","adultbiomass_end") ~ "adult",
+      biomasstype %in% c("juvbiomass_start","juvbiomass_end") ~ "juvenile"
+    ))
 )
 
 #Scale biomass into millions of tons. initial biomass is 7.78 million tons
@@ -638,7 +662,7 @@ biomassdf$scenario <- relevel(biomassdf$scenario, ref = 'counterfactual')
   scale_y_continuous("Biomass (millions of tons)") + 
   scale_color_manual("biomass value", values = c("black", "dodgerblue4","orange1")) + 
   scale_linetype_manual(values = c("dotted", "solid")) + 
-  ggtitle("Biomass at start of season") + 
+  ggtitle("Biomass at start and end of season") + 
   labs(tag = "b") + theme(plot.tag.position = c(.05, 1), 
                           plot.margin = unit(c(.1,0.02,.05,0.02),"in")))
 
