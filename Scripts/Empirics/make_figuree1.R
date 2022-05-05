@@ -585,7 +585,6 @@ harvestdf$harvesttype <- relevel(harvestdf$harvesttype, ref = "total")
 harvestdf$scenario <- as.factor(harvestdf$scenario)
 harvestdf$scenario <- relevel(harvestdf$scenario, ref = 'counterfactual')
 
-
 (harvest_time <- ggplot(data = harvestdf, 
                         aes(x = yeartime, y = harvestquantity, col = harvesttype, linetype = scenario)) + 
     geom_line() +
@@ -795,3 +794,26 @@ tbt <- plot_grid(harvest_time, biomass_time, nrow=2, ncol=1,
 
 ggsave(tbt, file=paste0("Output/Figures/figuree1.png"),
        w=7,h=(7/1.69)*2, units = "in", dpi=1200)
+
+
+#total harvest in counterfactual and status quo
+harvestdf$harvestquantity[harvestdf$scenario == 'counterfactual' & harvestdf$harvesttype == 'total'] %>% sum() #124.3874 million tons
+harvestdf$harvestquantity[harvestdf$scenario == 'status quo' & harvestdf$harvesttype == 'total'] %>% sum() #102.0356 million tons
+
+#Discount harvest at 5% rate into 2017 values. midpoint of 2017 is base value
+harvestdf <- mutate(harvestdf, discountedquantity = harvestquantity / (1 + 0.05)^(yeartime - 1.5))
+
+group_by(harvestdf, scenario, harvesttype) %>% 
+  summarise(discountedharvest = sum(discountedquantity)) %>% as.data.frame()
+# scenario harvesttype discountedharvest
+# 1 counterfactual       total         81.097657
+# 2 counterfactual       adult         76.154774
+# 3 counterfactual    juvenile          4.942882
+# 4     status quo       total         68.860500
+# 5     status quo       adult         62.816775
+# 6     status quo    juvenile          6.043724
+
+(68.860500 - 81.097657) / 81.097657 #15.1% lower discounted harvest
+
+#Foregone export revenue over 20 year period in 2017 USD
+(((68.860500 - 81.097657) / 81.097657) * 1788500000 * 20) / 10^6
