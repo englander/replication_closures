@@ -104,6 +104,9 @@ regdf <- filter(regdf, !is.na(prop12hat))
 #Drop 1,140 observations when no sets during period of potential closure-treatment bin (so dist_km_mean is NA)
 regdf <- filter(regdf, dist_km_nobs > 0)
 
+#Remaining potential closure-treatment bins have 829 sets on average
+mean(regdf$dist_km_nobs)
+
 #Given dependent variable (quantile of distance), re-estimate Eq 1 with this as dependent variable
 regFun <- function(mydepvar){
   
@@ -277,13 +280,12 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
       include.colnames=FALSE,include.rownames=FALSE,table.placement="tb",
       hline.after=NULL,
       add.to.row=list(
-        pos = list(0,0,2,nrow(table) - 1, nrow(table)),
+        pos = list(0,0,2,nrow(table) - 1),
         command = c(
           paste0("\\toprule & \\multicolumn{6}{c}{Dependent variable: Distance quantile (km)}  \\\\ "),
           "\\midrule ",
           "\\midrule ",
-          "\\midrule ",
-          "\\bottomrule \\multicolumn{7}{l}{\\multirow{2}{12cm}{Notes: All regressions have 33,024 observations. The unit of observation is a potential closure-treatment bin. For each potential closure-treatment bin, I calculate the distance to sets that occur during the period of the potential closure-treatment bin. The dependent variable is a quantile of these distances (in Column 4 it is the mean). All regressions control for the same variables as Equation 1, except instead of estimating 36 treatment coefficients these regressions estimate 1. Standard errors clustered at level of two-week-of-sample by two-degree grid cell.}} \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ "
+          "\\midrule "
         )),
       type = "latex",file="Output/Tables/change_distance_closure.tex")
 
