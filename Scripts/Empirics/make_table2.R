@@ -256,40 +256,40 @@ table <- matrix(NA, nrow=7, ncol=5)
 table[1,] <- c("","(1)","(2)","(3)","(4)")
 
 table[2,] <- c("$\\mathbb{1}$\\{Near\\}",
-               formCoef(reg1,"sigbin",3),
-               formCoef(reg2,"sigbin",3),
                formCoef(reg3,"sigbin",3),
-               formCoef(reg4,"sigbin",3))
+               formCoef(reg4,"sigbin",3),
+               formCoef(reg1,"sigbin",3),
+               formCoef(reg2,"sigbin",3))
 
 table[3,] <- c("",
-               formSE(reg1,"sigbin",3),
-               formSE(reg2,"sigbin",3),
                formSE(reg3,"sigbin",3),
-               formSE(reg4,"sigbin",3))
+               formSE(reg4,"sigbin",3),
+               formSE(reg1,"sigbin",3),
+               formSE(reg2,"sigbin",3))
 
 
 table[4,] <- c("Distance to shore (km)",
-               formCoef(reg1, "kmtocoast",3),
-               formCoef(reg2, "kmtocoast",3),
                formCoef(reg3, "kmtocoast",3),
-               formCoef(reg4, "kmtocoast",3))
+               formCoef(reg4, "kmtocoast",3),
+               formCoef(reg1, "kmtocoast",3),
+               formCoef(reg2, "kmtocoast",3))
 
 table[5,] <- c("",
-               formSE(reg1, "kmtocoast",3),
-               formSE(reg2, "kmtocoast",3),
                formSE(reg3, "kmtocoast",3),
-               formSE(reg4, "kmtocoast",3))
+               formSE(reg4, "kmtocoast",3),
+               formSE(reg1, "kmtocoast",3),
+               formSE(reg2, "kmtocoast",3))
 
 table[6,] <- c("Constant",
-               formCoef(reg1,"(Intercept)",3),
-               "",
                formCoef(reg3,"(Intercept)",3),
+               "",
+               formCoef(reg1,"(Intercept)",3),
                "")
 
 table[7,] <- c("",
-               formSE(reg1,"(Intercept)",3),
-               "",
                formSE(reg3,"(Intercept)",3),
+               "",
+               formSE(reg1,"(Intercept)",3),
                "")
 
 myxtable <- xtable(table)
@@ -307,7 +307,7 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
         pos = list(0,0,1,nrow(table),nrow(table)),
         command = c(
           paste0("\\toprule & \\multicolumn{4}{c}{Dependent variable: asinh(tons)} \\\\ "),
-          "\\midrule & \\multicolumn{2}{c}{Actual closures} & \\multicolumn{2}{c}{Potential closures} \\\\",
+          "\\midrule & \\multicolumn{2}{c}{Potential closures} & \\multicolumn{2}{c}{Actual closures} \\\\",
           "\\midrule ",
           "\\midrule Fixed effects & & X & & X\\\\ ",
           "\\bottomrule \\multicolumn{5}{l}{\\multirow{2}{12cm}{All regressions have 246,914 observations. $\\mathbb{1}$\\{Near\\} is an indicator for whether the set occurred inside a treatment bin in which there is a significant change in juvenile catch because of the temporary spatial closures policy. In Columns 1 and 2, Near is defined relative to actual closures declared by the regulator (mean of this indicator equals .391). In Columns 3 and 4, Near is defined relative to potential closures (mean of this indicator is .799). Electronic logbook data is for all vessels from April 2017 to January 2020. Regressions in Columns 2 and 4 include vessel by season fixed effects, day-of-sample fixed effects, and two-degree grid cell by season fixed effects. Standard errors clustered at level of two-week-of-sample by two-degree grid cell.}} \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ "
