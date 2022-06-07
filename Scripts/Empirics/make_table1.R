@@ -1,183 +1,138 @@
-rm(list=ls())
-setwd("C:/Users/englander/Documents/replication_closures")
+#For each potential closure-treatment bin, filter to sets during period. 
+#Calculate distance to each of these sets and record five quantiles and mean
+#Run main regression, except dependent variable is mean distance to sets
 
+rm(list=ls())
+setwd("C:/Users/gabee/Documents/replication_closures")
 
 library(dplyr); library(ggplot2); library(lfe)
 library(lubridate); library(xtable); library(car)
 library(purrr); library(readxl); library(readr)
-library(parallel); library(sf); library(rworldmap)
+library(sf); library(rworldmap)
+library(collapse); library(furrr); library(Formula)
 
 options(scipen=999)
+
 #Peru time
 Sys.setenv(TZ='America/Lima')
 
 `%not in%` <- function (x, table) is.na(match(x, table, nomatch=NA_integer_))
 
-myThemeStuff <- theme(panel.background = element_rect(fill = NA),
-                      panel.border = element_rect(fill = NA, color = "black"),
-                      panel.grid.major = element_blank(),
-                      panel.grid.minor = element_blank(),
-                      axis.ticks = element_line(color = "gray5",size=.35),
-                      axis.text = element_text(color = "black", size = 5.5, family="sans"),
-                      axis.title = element_text(color = "black", size = 6.5, family = "sans"),
-                      #axis.title.y.right = element_text(angle = 90,hjust=0),
-                      axis.title.y = element_text(hjust = .5),
-                      legend.key = element_blank(),
-                      plot.title = element_text(hjust = 0.5, size = 8), 
-                      legend.text=element_text(size=6.5, family = "sans"),
-                      legend.title = element_text(size=6.5, family = "sans"),
-                      plot.margin = unit(c(0.01,.01,0.01,.01),"in"),
-                      plot.tag = element_text(family = "sans", size = 9)
-)
-
 #Created in 3. correct_size_be.R
 load("Output/Data/pbe_imp.Rdata")
 
-#Create indicator for whether set occurred inside treatment bin with statistically significant change in juvenile catch
-fullbe <- mutate(fullbe, sigbin = if_else(lead_0==1 |active_10==1 | active_20==1 | active_30==1 | active_40==1 |
-                                            active_50==1 | lag1_0==1 | lag1_10==1 | lag1_20==1 |
-                                            lag2_0==1 | lag2_10==1 | lag2_20==1,1,0))
-
-fullbe <- rename(fullbe, calatime = FechaInicioCala)
-
-#Day of sample
-fullbe <- mutate(fullbe, date = date(calatime) %>% as.factor())
-
-#What % of sets catch 0 tons?
-filter(fullbe, betons==0) %>% nrow() / nrow(fullbe)
-
-#Inverse hyperbolic sine tons
-fullbe <- mutate(fullbe, asinhtons = asinh(betons))
-
-#Calculate distance of set to coast
-peru <- getMap(resolution = "high")
-peru <- st_as_sf(peru) %>% filter(ADMIN.1 == "Peru")
-
-#sf from full be
-besf <- st_multipoint(cbind(fullbe$lon, fullbe$lat))
-
-besf <- st_sfc(besf) %>% st_cast("POINT")
-
-st_crs(besf) <- st_crs("+proj=longlat +datum=WGS84 +no_defs")
-
-besf <- st_sf(besf)
-
-dist2coast <- st_distance(besf, peru)
-
-kmtocoast <- as.numeric(dist2coast) / 10^3
-
-fullbe <- mutate(fullbe, kmtocoast = kmtocoast)
-
-rm(dist2coast, kmtocoast, besf)
-
-#Make a simple regression table.
-
-fullbe$Matricula <- as.factor(fullbe$Matricula)
-fullbe$Temporada <- as.factor(fullbe$Temporada)
-fullbe$twoweek_cellid_2p <- as.factor(fullbe$twoweek_cellid_2p)
-fullbe$cellid_2p <- as.factor(fullbe$cellid_2p)
-
-#No FE, actual closures
-reg1 <- felm(asinhtons ~ sigbin + kmtocoast | 0 | 0 | twoweek_cellid_2p, data = fullbe)
-
-#FE, actual closures
-reg2 <- felm(asinhtons ~ sigbin + kmtocoast | Matricula:Temporada + date + 
-               Temporada:cellid_2p | 0 | twoweek_cellid_2p, data = fullbe)
-
-#Mean of sigbin
-mean(fullbe$sigbin) #0.3912658
-
-##Calculate whether sets occurred inside significant treatment bin of potential closure
 #Created in make_rddf.R
 load("Output/Data/rddf_10km_lead1tolag4_3dayrect.Rdata")
 
-#Only keep relevant columns of potential closures
-rddf <- dplyr::select(rddf, rid, start, end, bin, tvar, bdist)
-
-#Re-make besf
+#Make sets spatial points
 besf <- st_multipoint(cbind(fullbe$lon, fullbe$lat))
 
 besf <- st_sfc(besf) %>% st_cast("POINT")
 
 st_crs(besf) <- st_crs("+proj=longlat +datum=WGS84 +no_defs")
 
-besf <- st_sf(geometry = besf, fullbe)
+besf <- st_sf(geometry = besf, dplyr::select(fullbe, FechaInicioCala) %>% 
+                rename(calatime = FechaInicioCala))
 
-#Drop previously defined sigbin, since going to redefine
-besf <- dplyr::select(besf, -sigbin)
-
-#Calculate whether each set is inside significant treatment bin of potential closure
-inBuf <- function(myrowind){
+#Given potential closure-treatment bin, filter to sets during period. 
+#Calculate distance to each of these sets and record five quantiles and mean
+distFun <- function(myrowind){
   
-  row <- besf[myrowind,] 
+  row <- rddf[myrowind,] 
   
-  #Filter to potential closure rows and exclude active_in bins
-  actpot <- filter(rddf, start<=row$calatime & row$calatime<=end & bin!="active_in")
+  #Filter sets to those during this period
+  mysets <- fsubset(besf, calatime >= row$start & calatime <= row$end)
   
-  inter <- st_intersects(row, actpot)
+  #Distance of each of these sets to potential closure-treatment bin
+  mydist <- st_distance(mysets, row) %>% as.matrix() %>% as.numeric()
   
-  #Filter to potential closure rows that row is spatially inside
-  insidepot <- actpot[unlist(inter),] %>%
-    as.data.frame() %>% dplyr::select(-geometry) %>%
-    distinct(bin)
+  #Convert to km
+  mydist <- mydist / 1000
   
-  if(nrow(insidepot)>0){
-    
-    #Significant treatment bins
-    if(
-      filter(insidepot, bin=="lead_0" | bin=="active_10" |  bin=="active_20" |  bin=="active_30" |  bin=="active_40" | 
-             bin=="active_50" |  bin=="lag1_0" |  bin=="lag1_10" |  bin=="lag1_20" |
-             bin=="lag2_0" |  bin=="lag2_10" |  bin=="lag2_20") %>% nrow() > 0){
-      sigbin <- 1
-    } else{
-      sigbin <- 0
-    }
-    
-  } else{
-    sigbin <- 0
-  }
+  #Make data frame for column binding
+  mydist <- summary(mydist) %>% as.matrix() %>% t() %>% as.data.frame()
   
-  out <- as.data.frame(row) %>% dplyr::select(-geometry) %>% 
-    mutate(sigbin = sigbin)
+  names(mydist) <- c("dist_km_min", "dist_km_first_quartile", "dist_km_median", "dist_km_mean", 
+                     "dist_km_third_quartile", "dist_km_max")
+  
+  #Bind to row
+  out <- bind_cols(row, mydist) %>% 
+    #Also record number of sets
+    mutate(dist_km_nobs = nrow(mysets)) %>% 
+    #Drop geometry column
+    as.data.frame() %>% 
+    dplyr::select(-geometry)
+  
   
   return(out)
 }
 
-(myCores <- detectCores())
 
-cl <- makeCluster(24)
-
-clusterExport(cl, "besf")
-clusterExport(cl, "rddf")
-clusterExport(cl, "inBuf")
-clusterEvalQ(cl, library(dplyr))
-clusterEvalQ(cl, library(sf))
-clusterEvalQ(cl, library(lubridate))
+plan(multisession, workers = 12)
 
 
-belist <- parLapply(cl = cl,
-                    1:nrow(besf),
-                    function(x){
-                      
-                      try(inBuf(x))
-                      
+distlist <- future_map(
+  1:nrow(rddf),
+  function(x){
+    
+    try(distFun(x))
+    
+  })
+
+#Regression data frame
+regdf <- bind_rows(distlist)
+
+regdf <- arrange(regdf, tvar, bdist)
+
+#Create control variables
+regdf <- regdf %>% #Cluster tons/set and tons/area
+  mutate(clusttonsperset = clusttons/clustnobs, clusttonsperarea = clusttons/clustarea_km2) %>%
+  #clust millions of juveniles, individuals, and adults
+  mutate(clustmjuv = clustnumjuv/10^6, clustmindivids = clustnumindivids/10^6,
+         clustmadults = clustnumadults/10^6)
+
+regdf$bin <- as.factor(regdf$bin)
+regdf$bin <- relevel(regdf$bin, ref="active_in")
+
+regdf$twoweek_cellid_2p <- as.factor(regdf$twoweek_cellid_2p)
+regdf$twowk <- as.factor(regdf$twowk)
+regdf$cellid_2p <- as.factor(regdf$cellid_2p)
+
+#Drop potential closures that have NA for size distribution
+regdf <- filter(regdf, !is.na(prop12hat))
+
+#Drop 1,140 observations when no sets during period of potential closure-treatment bin (so dist_km_mean is NA)
+regdf <- filter(regdf, dist_km_nobs > 0)
+
+#Remaining potential closure-treatment bins have 829 sets on average
+mean(regdf$dist_km_nobs)
+
+#Given dependent variable (quantile of distance), re-estimate Eq 1 with this as dependent variable
+regFun <- function(mydepvar){
+  
+  distreg <- felm(
+    as.Formula(paste0(
+      mydepvar, "~ ", 
+      #paste0(grep("_treatfrac",names(regdf),value=T),collapse="+"), #don't care about bin-specific effect; just want single average effect across bins
+      "treatfrac ",
+      " + clustnobs + clusttons + clustarea_km2 + kmtocoast + clusttonsperset + clusttonsperarea + ", 
+      paste0(grep("prop",names(regdf),value=T),collapse="+"),
+      "| bin + twowk:cellid_2p + startdate",
+      " | 0 | twoweek_cellid_2p")),
+    data =  regdf
+  )
+  
+  return(distreg)
+  
+}
+
+#Apply over quantiles
+reglist <- lapply(c("dist_km_min", "dist_km_first_quartile", "dist_km_median", "dist_km_mean", 
+                    "dist_km_third_quartile", "dist_km_max"), function(x){
+                      regFun(x)
                     })
 
-#Regression data frame for regressions 3 and 4
-regdf <- bind_rows(belist)
 
-stopCluster(cl)
-rm(cl, myCores)
-
-#No FE, potential closures
-reg3 <- felm(asinhtons ~ sigbin + kmtocoast | 0 | 0 | twoweek_cellid_2p, data = regdf)
-
-#FE, potential closures
-reg4 <- felm(asinhtons ~ sigbin + kmtocoast | Matricula:Temporada + date + 
-               Temporada:cellid_2p | 0 | twoweek_cellid_2p, data = regdf)
-
-#Mean of sigbin relative to potential closures
-mean(regdf$sigbin) #0.7985614
 
 #Format coefficient
 formCoef <- function(reg, coef, dig){
@@ -251,70 +206,144 @@ formSE <- function(reg, coef, dig){
   return(roundse)
 }
 
-table <- matrix(NA, nrow=7, ncol=5)
+#Given number and number of digits, round and add zero after decimal if necessary
+formNum <- function(num, dig){
+  
+  #Round
+  roundnum <- round(num, dig) %>% as.character()
+  
+  #If rounded to integer, need to add "." to end
+  if(length(grep("\\.",roundnum))==0){
+    roundnum <- paste0(roundnum, ".")
+  }
+  
+  #Add an extra zero beyond the decimal point if needed to get same length
+  #Do num first
+  roundnum <- sapply(seq_len(length(roundnum)), function(x){
+    if(gsub(".*\\.","",roundnum[x]) %>% nchar() < dig){
+      #Needed length
+      zerosneeded <- dig - gsub(".*\\.","",roundnum[x]) %>% nchar()
+      roundnum[x] <- paste0(roundnum[x],paste0(rep(0,zerosneeded),collapse=""))
+    } else{
+      roundnum[x]
+    }
+  })
+  
+  #Add commas if necessary
+  roundnum <- prettyNum(roundnum, ",")
+  
+  return(roundnum)
+}
 
-table[1,] <- c("","(1)","(2)","(3)","(4)")
+table <- matrix(NA, nrow=5, ncol=7)
 
-table[2,] <- c("$\\mathbb{1}$\\{Near\\}",
-               formCoef(reg1,"sigbin",3),
-               formCoef(reg2,"sigbin",3),
-               formCoef(reg3,"sigbin",3),
-               formCoef(reg4,"sigbin",3))
+table[1,] <- c("", "0\\%", "25\\%", "50\\%", "Mean", "75\\%", "100\\%")
 
-table[3,] <- c("",
-               formSE(reg1,"sigbin",3),
-               formSE(reg2,"sigbin",3),
-               formSE(reg3,"sigbin",3),
-               formSE(reg4,"sigbin",3))
+table[2,] <- c("","(1)","(2)","(3)","(4)", "(5)", "(6)")
+
+table[3,] <- c("Treatment fraction",
+               formCoef(reglist[[1]],"treatfrac",1),
+               formCoef(reglist[[2]],"treatfrac",1),
+               formCoef(reglist[[3]],"treatfrac",1),
+               formCoef(reglist[[4]],"treatfrac",1),
+               formCoef(reglist[[5]],"treatfrac",1),
+               formCoef(reglist[[6]],"treatfrac",1))
 
 
-table[4,] <- c("Distance to shore (km)",
-               formCoef(reg1, "kmtocoast",3),
-               formCoef(reg2, "kmtocoast",3),
-               formCoef(reg3, "kmtocoast",3),
-               formCoef(reg4, "kmtocoast",3))
+table[4,] <- c("",
+               formSE(reglist[[1]],"treatfrac",1),
+               formSE(reglist[[2]],"treatfrac",1),
+               formSE(reglist[[3]],"treatfrac",1),
+               formSE(reglist[[4]],"treatfrac",1),
+               formSE(reglist[[5]],"treatfrac",1),
+               formSE(reglist[[6]],"treatfrac",1))
 
-table[5,] <- c("",
-               formSE(reg1, "kmtocoast",3),
-               formSE(reg2, "kmtocoast",3),
-               formSE(reg3, "kmtocoast",3),
-               formSE(reg4, "kmtocoast",3))
 
-table[6,] <- c("Constant",
-               formCoef(reg1,"(Intercept)",3),
-               "",
-               formCoef(reg3,"(Intercept)",3),
-               "")
-
-table[7,] <- c("",
-               formSE(reg1,"(Intercept)",3),
-               "",
-               formSE(reg3,"(Intercept)",3),
-               "")
+table[5,] <- c("Mean dep. var.", 
+               sapply(c("dist_km_min", "dist_km_first_quartile", "dist_km_median", "dist_km_mean", 
+                        "dist_km_third_quartile", "dist_km_max"), function(x){
+                          dplyr::select(regdf, all_of(x)) %>% 
+                            as.matrix() %>% as.numeric() %>% mean() %>% 
+                            formNum(1)
+                        }) %>% unname()
+)
 
 myxtable <- xtable(table)
 
-caption(myxtable) <- c("Closures provide valuable information, but the value of this information is competed away")
+caption(myxtable) <- c("Sets move toward closures")
 
-align(myxtable) <- c("l","l",rep("c",4))
+align(myxtable) <- c("l","l",rep("c",6))
 
-label(myxtable) <- "information_valuable"
+label(myxtable) <- "change_distance_closure"
 
 print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function = identity,
-      include.colnames=F,include.rownames=F,table.placement="tb",
+      include.colnames=FALSE,include.rownames=FALSE,table.placement="tb",
       hline.after=NULL,
       add.to.row=list(
-        pos = list(0,0,1,nrow(table),nrow(table)),
+        pos = list(0,0,2,nrow(table) - 1),
         command = c(
-          paste0("\\toprule & \\multicolumn{4}{c}{Dependent variable: asinh(tons)} \\\\ "),
-          "\\midrule & \\multicolumn{2}{c}{Actual closures} & \\multicolumn{2}{c}{Potential closures} \\\\",
+          paste0("\\toprule & \\multicolumn{6}{c}{Dependent variable: Distance quantile (km)}  \\\\ "),
           "\\midrule ",
-          "\\midrule Fixed effects & & X & & X\\\\ ",
-          "\\bottomrule \\multicolumn{5}{l}{\\multirow{2}{12cm}{All regressions have 246,914 observations. $\\mathbb{1}$\\{Near\\} is an indicator for whether the set occurred inside a treatment bin in which there is a significant change in juvenile catch because of the temporary spatial closures policy. In Columns 1 and 2, Near is defined relative to actual closures declared by the regulator (mean of this indicator equals .391). In Columns 3 and 4, Near is defined relative to potential closures (mean of this indicator is .799). Electronic logbook data is for all vessels from April 2017 to January 2020. Regressions in Columns 2 and 4 include vessel by season fixed effects, day-of-sample fixed effects, and two-degree grid cell by season fixed effects. Standard errors clustered at level of two-week-of-sample by two-degree grid cell.}} \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ "
+          "\\midrule ",
+          "\\midrule "
         )),
       type = "latex",file="Output/Tables/table1.tex")
 
-
 sessionInfo()
-
+# R version 4.1.0 (2021-05-18)
+# Platform: x86_64-w64-mingw32/x64 (64-bit)
+# Running under: Windows 10 x64 (build 22000)
+# 
+# Matrix products: default
+# 
+# locale:
+#   [1] LC_COLLATE=English_United States.1252 
+# [2] LC_CTYPE=English_United States.1252   
+# [3] LC_MONETARY=English_United States.1252
+# [4] LC_NUMERIC=C                          
+# [5] LC_TIME=English_United States.1252    
+# 
+# attached base packages:
+#   [1] stats     graphics  grDevices utils     datasets 
+# [6] methods   base     
+# 
+# other attached packages:
+#   [1] Formula_1.2-4    furrr_0.2.3      future_1.23.0   
+# [4] collapse_1.6.5   rworldmap_1.3-6  sp_1.4-5        
+# [7] sf_1.0-5         readr_2.0.1      readxl_1.3.1    
+# [10] purrr_0.3.4      car_3.0-12       carData_3.0-4   
+# [13] xtable_1.8-4     lubridate_1.7.10 lfe_2.8-7       
+# [16] Matrix_1.3-3     ggplot2_3.3.5    dplyr_1.0.7     
+# 
+# loaded via a namespace (and not attached):
+#   [1] Rcpp_1.0.7               lattice_0.20-44         
+# [3] listenv_0.8.0            class_7.3-19            
+# [5] zoo_1.8-9                digest_0.6.27           
+# [7] assertthat_0.2.1         utf8_1.2.1              
+# [9] parallelly_1.29.0        R6_2.5.0                
+# [11] cellranger_1.1.0         e1071_1.7-7             
+# [13] spam_2.7-0               pillar_1.6.4            
+# [15] rlang_0.4.11             RcppEigen_0.3.3.9.1     
+# [17] foreign_0.8-81           munsell_0.5.0           
+# [19] proxy_0.4-26             compiler_4.1.0          
+# [21] numDeriv_2016.8-1.1      pkgconfig_2.0.3         
+# [23] globals_0.14.0           tidyselect_1.1.1        
+# [25] tibble_3.1.2             gridExtra_2.3           
+# [27] codetools_0.2-18         fixest_0.10.1           
+# [29] fansi_0.5.0              viridisLite_0.4.0       
+# [31] crayon_1.4.1             tzdb_0.1.2              
+# [33] withr_2.4.2              grid_4.1.0              
+# [35] nlme_3.1-152             gtable_0.3.0            
+# [37] lifecycle_1.0.0          DBI_1.1.1               
+# [39] magrittr_2.0.1           units_0.7-2             
+# [41] scales_1.1.1             KernSmooth_2.23-20      
+# [43] dreamerr_1.2.3           RcppArmadillo_0.10.7.5.0
+# [45] viridis_0.6.1            ellipsis_0.3.2          
+# [47] generics_0.1.0           vctrs_0.3.8             
+# [49] sandwich_3.0-1           tools_4.1.0             
+# [51] glue_1.4.2               maps_3.3.0              
+# [53] hms_1.1.0                fields_12.5             
+# [55] abind_1.4-5              parallel_4.1.0          
+# [57] colorspace_2.0-2         maptools_1.1-1          
+# [59] classInt_0.4-3           dotCall64_1.0-1   
 
