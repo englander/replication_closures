@@ -3,7 +3,6 @@
 #The next one is 2. impute_size_be.R
 
 rm(list=ls())
-setwd("C:/Users/englander/Documents/replication_closures/")
 
 `%not in%` <- function (x, table) is.na(match(x, table, nomatch=NA_integer_))
 
@@ -13,6 +12,9 @@ Sys.setenv(TZ='America/Lima')
 library(dplyr); library(readr); library(purrr); library(readxl)
 library(lubridate); library(ggplot2); library(lfe); library(car)
 library(sf); library(parallel)
+
+#Turn off spherical geometry since I wrote these scripts before sf v1
+sf::sf_use_s2(FALSE) 
 
 #Full 2017 to 2019 landings data
 land <- read_excel("Data/landings_2017to2019.xlsx")

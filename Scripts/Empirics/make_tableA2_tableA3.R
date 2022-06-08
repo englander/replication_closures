@@ -1,8 +1,10 @@
 rm(list=ls())
-setwd("C:/Users/englander/Documents/replication_closures")
 
 library(dplyr); library(lubridate); library(sf)
 library(lfe); library(xtable); library(Formula)
+
+#Turn off spherical geometry since I wrote these scripts before sf v1
+sf::sf_use_s2(FALSE) 
 
 options(scipen=999)
 options(lfe.threads=24)

@@ -1,9 +1,12 @@
 rm(list=ls())
-setwd("C:/Users/englander/Documents/replication_closures/")
+
 library(dplyr); library(readxl); library(ggplot2)
 library(sf); library(gridExtra); library(lwgeom)
 library(grid); library(geosphere); library(viridis)
 library(sp); library(cowplot); library(rworldmap)
+
+#Turn off spherical geometry since I wrote these scripts before sf v1
+sf::sf_use_s2(FALSE) 
 
 `%not in%` <- function (x, table) is.na(match(x, table, nomatch=NA_integer_))
 

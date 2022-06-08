@@ -2,13 +2,15 @@
 #Script used to be called "semidirect_infomechanism*.R"
 
 rm(list=ls())
-setwd("C:/Users/englander/Documents/replication_closures")
 
 library(dplyr); library(ggplot2); library(lfe)
 library(lubridate); library(sf); library(readxl)
 library(purrr); library(parallel); 
 library(xtable); library(lwgeom); library(tidyr)
 library(Formula); library(msm); library(cowplot)
+
+#Turn off spherical geometry since I wrote these scripts before sf v1
+sf::sf_use_s2(FALSE) 
 
 myThemeStuff <- theme(panel.background = element_blank(),
                       panel.border = element_blank(),

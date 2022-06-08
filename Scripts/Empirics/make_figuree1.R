@@ -1,15 +1,14 @@
 #Digitize number of individuals in each length bin at start of first season 2017
 #This is population distribution (in the water), not distribution of catch
 
-usethis::use_git_config(user.name = "englander", user.email = "genglander@ucsb.edu")
-credentials::set_github_pat("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")
-
 rm(list=ls())
-setwd("C:/Users/gabee/Documents/replication_closures")
 
 library(dplyr); library(sf); library(ggplot2); library(lubridate)
 library(readr); library(purrr); library(readxl); library(imager)
 library(furrr); library(tidyr); library(cowplot)
+
+#Turn off spherical geometry since I wrote these scripts before sf v1
+sf::sf_use_s2(FALSE) 
 
 #Peru time
 Sys.setenv(TZ='America/Lima')

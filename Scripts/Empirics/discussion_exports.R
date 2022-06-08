@@ -7,8 +7,6 @@
 
 rm(list=ls())
 
-setwd("C:/Users/gabee/Documents/replication_closures")
-
 library(dplyr); library(tidyr); library(purrr)
 
 #Created in 3. correct_be.R

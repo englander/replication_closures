@@ -3,13 +3,15 @@
 #Run main regression, except dependent variable is mean distance to sets
 
 rm(list=ls())
-setwd("C:/Users/gabee/Documents/replication_closures")
 
 library(dplyr); library(ggplot2); library(lfe)
 library(lubridate); library(xtable); library(car)
 library(purrr); library(readxl); library(readr)
 library(sf); library(rworldmap)
 library(collapse); library(furrr); library(Formula)
+
+#Turn off spherical geometry since I wrote these scripts before sf v1
+sf::sf_use_s2(FALSE) 
 
 options(scipen=999)
 

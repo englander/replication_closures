@@ -1,6 +1,5 @@
 #Make an sf data frame with the id, start and end date and time, and geometry of temporarily closed area
 rm(list=ls())
-setwd("C:/Users/englander/Documents/replication_closures")
 
 #Peru time
 Sys.setenv(TZ='America/Lima')
@@ -9,6 +8,9 @@ library(dplyr); library(ggplot2); library(sf)
 library(readr); library(rworldmap); library(rworldxtra)
 library(lwgeom); library(lubridate)
 library(parallel); library(readxl)
+
+#Turn off spherical geometry since I wrote these scripts before sf v1
+sf::sf_use_s2(FALSE) 
 
 myThemeStuff <- theme(panel.background = element_rect(fill = NA),
                       panel.border = element_rect(fill = NA, color = "black"),

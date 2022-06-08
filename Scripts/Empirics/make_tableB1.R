@@ -1,5 +1,4 @@
 rm(list=ls())
-setwd("C:/Users/englander/Documents/replication_closures/")
 
 library(dplyr); library(xtable); library(readr)
 library(readxl)

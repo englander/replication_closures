@@ -1,8 +1,10 @@
 rm(list=ls())
-setwd("C:/Users/englander/Documents/replication_closures/")
 
 #Peru time
 Sys.setenv(TZ='America/Lima')
+
+#Turn off spherical geometry since I wrote these scripts before sf v1
+sf::sf_use_s2(FALSE) 
 
 library(ggplot2); library(rworldmap); library(cowplot)
 library(sf); library(dplyr); library(geosphere)

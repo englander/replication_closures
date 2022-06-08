@@ -1,11 +1,12 @@
 rm(list=ls())
-setwd("C:/Users/englander/Documents/replication_closures")
-
 
 library(dplyr); library(ggplot2); library(lfe)
 library(lubridate); library(xtable); library(car)
 library(purrr); library(readxl); library(readr)
 library(parallel); library(sf); library(rworldmap)
+
+#Turn off spherical geometry since I wrote these scripts before sf v1
+sf::sf_use_s2(FALSE) 
 
 options(scipen=999)
 #Peru time

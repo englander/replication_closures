@@ -1,5 +1,4 @@
 rm(list=ls())
-setwd("C:/Users/englander/Documents/replication_closures/")
 
 #Peru time
 Sys.setenv(TZ='America/Lima')
@@ -8,6 +7,9 @@ options(scipen=999)
 
 library(ggplot2); library(rworldmap); library(geosphere)
 library(sf); library(dplyr); library(cowplot); library(purrr)
+
+#Turn off spherical geometry since I wrote these scripts before sf v1
+sf::sf_use_s2(FALSE) 
 
 myThemeStuff <- theme(panel.background = element_blank(),
                       panel.border = element_blank(),

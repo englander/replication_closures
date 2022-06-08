@@ -1,5 +1,5 @@
 rm(list=ls())
-setwd("C:/Users/englander/Documents/replication_closures/")
+
 library(dplyr); library(readxl); library(ggplot2)
 library(rworldmap); library(sf); library(lwgeom)
 library(rgdal); library(geosphere); library(sp)
@@ -7,6 +7,9 @@ library(purrr); library(lubridate); library(glmnet)
 library(lfe); library(Formula); library(smoothr)
 library(parallel); library(xtable); library(latex2exp)
 library(cowplot); library(tidyr)
+
+#Turn off spherical geometry since I wrote these scripts before sf v1
+sf::sf_use_s2(FALSE) 
 
 options(scipen=999)
 options(lfe.threads=24)

@@ -1,7 +1,7 @@
 #Make potential closures
 
 rm(list=ls())
-setwd("C:/Users/englander/Documents/replication_closures/")
+
 library(dplyr); library(readxl); library(ggplot2)
 library(rworldmap); library(sf); library(lwgeom)
 library(rgdal); library(geosphere); library(sp)
@@ -12,6 +12,9 @@ library(parallel)
 options(scipen=999)
 
 `%not in%` <- function (x, table) is.na(match(x, table, nomatch=NA_integer_))
+
+#Turn off spherical geometry since I wrote these scripts before sf v1
+sf::sf_use_s2(FALSE) 
 
 myThemeStuff <- theme(panel.background = element_rect(fill = NA),
                       panel.border = element_rect(fill = NA, color = "black"),

@@ -6,10 +6,13 @@
 #using matched sets in same twoweek-cell group
 
 rm(list=ls())
-setwd("C:/Users/englander/Documents/replication_closures/")
+
 library(dplyr); library(readxl); library(ggplot2)
 library(sf); library(purrr); library(lubridate)
 library(parallel); library(tidyr)
+
+#Turn off spherical geometry since I wrote these scripts before sf v1
+sf::sf_use_s2(FALSE) 
 
 options(scipen=999)
 

@@ -1,5 +1,4 @@
 rm(list=ls())
-setwd("C:/Users/englander/Documents/replication_closures/")
 
 #Peru time
 Sys.setenv(TZ='America/Lima')
@@ -8,6 +7,9 @@ library(dplyr); library(ggplot2); library(sf)
 library(lubridate); library(Formula)
 library(purrr); library(parallel); library(lfe)
 library(cowplot); library(latex2exp)
+
+#Turn off spherical geometry since I wrote these scripts before sf v1
+sf::sf_use_s2(FALSE) 
 
 options(lfe.threads=12)
 
