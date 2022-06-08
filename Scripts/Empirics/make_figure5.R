@@ -1,16 +1,13 @@
 rm(list=ls())
 
-library(dplyr); library(readxl); library(ggplot2)
-library(sf); library(gridExtra); library(lwgeom)
-library(grid); library(geosphere); library(viridis)
-library(sp); library(cowplot); library(rworldmap)
+#Peru time
+Sys.setenv(TZ='America/Lima')
 
 #Turn off spherical geometry since I wrote these scripts before sf v1
 sf::sf_use_s2(FALSE) 
 
-`%not in%` <- function (x, table) is.na(match(x, table, nomatch=NA_integer_))
-
-options(scipen=999)
+library(ggplot2); library(rworldmap); library(cowplot)
+library(sf); library(dplyr); library(geosphere)
 
 myThemeStuff <- theme(panel.background = element_blank(),
                       panel.border = element_blank(),
@@ -18,194 +15,187 @@ myThemeStuff <- theme(panel.background = element_blank(),
                       panel.grid.major = element_blank(),
                       panel.grid.minor = element_blank(),
                       axis.ticks = element_line(color = "gray5",size=.35),
-                      axis.text = element_text(color = "black", size = 6.5, family="sans"),
+                      axis.text = element_text(color = "black", size = 5.5, family="sans"),
                       axis.title = element_text(color = "black", size = 6.5, family = "sans"),
                       #axis.title.y.right = element_text(angle = 90,hjust=0),
                       axis.title.y = element_text(hjust = .5),
                       legend.key = element_blank(),
-                      plot.title = element_text(hjust = 0.5, size = 9), 
+                      plot.title = element_text(hjust = 0.5, size = 7.5), 
                       legend.text=element_text(size=6.5, family = "sans"),
                       legend.title = element_text(size=6.5, family = "sans"),
                       plot.margin = unit(c(0,0,0,0),"in"),
-                      plot.tag = element_text(family = "sans", size = 9),
-                      plot.tag.position = c(.02, .99)
+                      plot.tag = element_text(family = "sans", size = 9)
 )
 
-#Peru time
-Sys.setenv(TZ='America/Lima')
+#Median-sized potential closure
+{
+  #Load potential closures created in 4. make_rddf.R
+  load("Output/Data/rddf_10km_lead1tolag4_3dayrect.Rdata")
 
-#Created in 3. correct_be.R
-load("Output/Data/pbe_imp.Rdata")
+  rddf <- filter(rddf, bin=="active_in")
+  
+  #To calculate areas, project
+  medarea <- st_transform(rddf, st_crs("+proj=laea +lon_0=-76.5"))
+  
+  #Area
+  medarea <- mutate(medarea, area_km2 = st_area(medarea)/10^6) %>% 
+    mutate(area_km2 = as.numeric(area_km2)) %>%
+    mutate(areadif = abs(area_km2 - median(area_km2)))
+  
+  #min, mean, median, and max area of potential closures (for comparison to actual closures)
+  min(medarea$area_km2) 
+  mean(medarea$area_km2) #956.7765
+  median(medarea$area_km2) 
+  max(medarea$area_km2) 
+  
+  #How many potential closures are active per day during the fishing season? (during fishing seasons, excluding exploratory days)
+  datevec <- c(
+    seq(from=as.POSIXct("2017-04-26 00:00:00 -05"),to=as.POSIXct("2017-07-31 00:00:00 -05"),by=3600*24),
+    seq(from=as.POSIXct("2017-11-27 00:00:00 -05"),to=as.POSIXct("2018-01-25 00:00:00 -05"),by=3600*24),
+    seq(from=as.POSIXct("2018-04-12 00:00:00 -05"),to=as.POSIXct("2018-08-08 00:00:00 -05"), by=3600*24),
+    seq(from=as.POSIXct("2018-11-15 00:00:00 -05"),to=as.POSIXct("2019-04-03 00:00:00 -05"), by=3600*24),
+    seq(from=as.POSIXct("2019-05-04 00:00:00 -05"), to=as.POSIXct("2019-07-30 00:00:00 -05"), by=3600*24),
+    seq(from=as.POSIXct("2019-11-16 00:00:00 -05"),to=as.POSIXct("2020-01-14 00:00:00 -05"),by=3600*24)
+  )
+  
+  nrow(medarea) / length(datevec) #1.718085
+  
+  #What is the average number of potential closures per two-week-of-sample by two-degree grid cell?
+  nrow(medarea) / unique(medarea$twoweek_cellid_2p) %>% length() #4.384615
+  
+  
+  medclosed <- as.data.frame(medarea) %>% dplyr::select(areadif) %>% 
+    summarise(min(areadif)) %>% as.matrix() %>% as.numeric()
+  
+  #There is a tie, so randomly pick one
+  set.seed(20200422)
+  
+  medclosed <- filter(medarea, areadif==medclosed) %>% 
+    sample_n(1)
+  
+  ##Create annuli
+  #Function of buffer distance
+  buF <- function(myb){
+    #dist given in m,  
+    buffered <- st_buffer(medclosed, dist = myb*1000) %>%
+      #but I want bdist variable to be in km
+      mutate(bdist = myb)
+    
+    return(buffered)
+  }
+  
+  #Apply over buffer distances
+  buffers <- lapply(seq(from=10,to=50,by=10), function(x){
+    buF(x)
+  })
+  
+  buffers <- do.call("rbind", buffers)
+  
+  #Bind with medclosed
+  medclosed <- rbind(mutate(medclosed, bdist = 0), buffers)
+  
+  #Iteratively difference to create annuli
+  annuli <- dplyr::select(medclosed, bdist)
+  
+  for(i in 5:1){
+    annuli[i+1,] <- st_difference(annuli[i+1,],annuli[i,]) %>% dplyr::select(bdist)
+  }
+  
+  potcl_annuli <- annuli
+  
+  potcl_annuli <- st_transform(potcl_annuli, st_crs(rddf))
+  
+  rm(buffers, medarea, medclosed, i, rddf, buF, annuli)
+}
 
-#Make sf
-besf <- st_multipoint(cbind(fullbe$lon, fullbe$lat))
-
-besf <- st_sfc(besf) %>% st_cast("POINT")
-
-st_crs(besf) <- st_crs("+proj=longlat +datum=WGS84 +no_defs")
-
-fullbe <- st_sf(geometry = besf, fullbe)
-
-fullbe <- rename(fullbe, calatime = FechaInicioCala)
-
-rm(besf)
-
+#Side note: 89% of actual closures intersect potential closures
+{
 #Load potential closures created in 4. make_rddf.R
 load("Output/Data/rddf_10km_lead1tolag4_3dayrect.Rdata")
 
-myseason <- "s1_2019"
+rddf <- filter(rddf, bin=="active_in")
 
-#Plot first five days of season
-firstfive <- seq(from=min(rddf$start[rddf$season==myseason & rddf$bin=="active_in"],na.rm=T),
-                 to=min(rddf$start[rddf$season==myseason & rddf$bin=="active_in"],na.rm=T)+4*24*3600,
-                 by=24*3600)
+#Load closed areas. Created in make_closures_df.R
+load("Output/Data/closed.Rdata")
 
+#Filter to closures during study period
+closed <- filter(closed, !is.na(season) & 
+                   (season=="s1_2017" | season=="s2_2017" | 
+                      season=="s1_2018" | season=="s2_2018" | season=="s1_2019" | 
+                      season=="s2_2019")
+)
 
-#Grab active_in rectangles that begin on these five days
-fiverect <- filter(rddf, bin=="active_in" & season==myseason)
+bbox <- c(-84, -15.9999, -74, -3.5) 
+names(bbox) <- names(st_bbox(closed))
 
-#Bounding box for plot
-bbox <- c(-76.7, -14.7, -75.5,-13.7) 
-names(bbox) <- names(st_bbox(fiverect))
+closed <- st_crop(closed, bbox)
 
-#Just peru
-peru <- getMap(resolution='high') %>% st_as_sf()
+#Only plot closures declared by PRODUCE
+closed <- filter(closed, days <= 5)
 
-peru <- filter(peru, ADMIN=="Peru")
+#Given row of closed, return 1 if it intersects a potential closure
+closed$intersectspotcl <- 0
 
-#Crop
-cropperu <- st_crop(peru, bbox)
-
-#Crop potential closures and sets to this bbox as well
-cropbe <- st_crop(fullbe, bbox)
-
-croprect <- st_crop(fiverect, bbox)
-
-#1. Plot raw BE data and resulting clusters
-
-#Filter to BE observations between 24 and 9 hours before closure begins
-#(sets that generated potential closure)
-today <- filter(cropbe, (firstfive[1]-24*3600)<=calatime & 
-                 calatime<=(firstfive[1]-9*3600)) 
+for(i in 1:nrow(closed)){
   
-#Make clusters
-{
-xy <- SpatialPointsDataFrame(
-  matrix(c(today$lon,today$lat), ncol=2), data.frame(bepjhat = today$bepjhat),
-  proj4string=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84"))
-
-# use the distm function to generate a geodesic distance matrix in meters
-mdist <- distm(xy)
-
-# cluster all points using a friend-of-friends approach
-hc <- hclust(as.dist(mdist), method="single")
-
-# define clusters based on a tree "height" cutoff "d" and add them to the SpDataFrame
-xy$clust <- cutree(hc, h=5*1.852*1000) #Nautical miles
-
-#Convert xy to sf so can visualize
-xy <- st_as_sf(xy)
-xy$clust <- as.factor(xy$clust)
-
-#Drop clusters made up of 3 or fewer points
-numobs <- group_by(xy, clust) %>% 
-  summarise(n = n())
-
-numobs <- numobs$clust[numobs$n<=3]
-
-xy <- filter(xy, clust %not in% numobs) 
-
-#Also drop any cluster if it only has one unique point
-distpts <- st_coordinates(xy) %>% as.data.frame() %>% 
-  mutate(clust = xy$clust) %>% 
-  distinct() %>% 
-  group_by(clust) %>% 
-  summarise(n = n())
-
-if(1 %in% distpts$n){
-  drop1 <- distpts$clust[distpts$n==1]
-  xy <- filter(xy, clust %not in% drop1)
+  row <- closed[i,]
+  
+  #Filter potential closures to same time period
+  potcl <- filter(rddf, start <= row$end & end >= row$start)
+  
+  inter <- st_intersects(row, potcl)
+  
+  if(length(inter[[1]])>0){
+    closed$intersectspotcl[i] <- 1
+  }
+  
 }
 
-#Create convex polygon for each cluster
-cpy <- group_by(xy, clust) %>% 
-  summarize(geometry = st_union(geometry)) %>%
-  st_convex_hull()
+mean(closed$intersectspotcl) #0.8902439
+
+rm(i, row, potcl, inter, rddf, closed)
 
 }
 
-#Make plot area a data frame
-bbsf <- data.frame(x = c(bbox["xmin"],bbox["xmax"],bbox["xmax"],bbox["xmin"]),
-                   y=c(bbox["ymax"],bbox["ymax"],bbox["ymin"],bbox["ymin"]))
 
-#Inset map
-(insetmap <- ggplot() + 
-  geom_sf(data=peru,fill='grey85',col='grey85') + 
-  geom_polygon(data=bbsf,aes(x=x,y=y),fill=NA,col='black')+ 
-  theme(panel.border = element_blank(),
-        axis.ticks=element_blank(),
-        axis.text=element_blank(),
-        axis.title=element_blank(),
-        axis.title.y=element_blank(),
-        plot.margin = unit(c(0,0,0,.0),"in"),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.background = element_rect(fill='white')))
+#Make a single plot of potential closure and rings
+medpotcl <- ggplot() + geom_sf(data=filter(potcl_annuli, bdist==0), fill='dodgerblue2') + 
+  geom_sf(data=filter(potcl_annuli, bdist!=0),fill=NA) + 
+  myThemeStuff
 
+#Plot without axes or title
+noax <- medpotcl + 
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.line = element_blank(),
+        plot.title = element_text(margin=margin(0,0,0,0)))
 
+##Try making a version of this plot with larger font and single row
+unfilled <- ggplot() + geom_sf(data=filter(potcl_annuli, bdist==0), fill=NA) + 
+  geom_sf(data=filter(potcl_annuli, bdist!=0),fill=NA) + 
+  myThemeStuff + 
+  theme(plot.title = element_text(hjust = 0.5, size = 11, margin=margin(0,0,0,0)),
+        axis.title = element_blank(),
+              axis.text = element_blank(),
+              axis.ticks = element_blank(),
+              axis.line = element_blank())
 
+p1 <- unfilled + ggtitle("Announcement")
+p2 <- noax + ggtitle("Closure period") + 
+  theme(plot.title = element_text(hjust = 0.5, size = 11))
+p3 <- unfilled + ggtitle("1 day after") + 
+  theme(plot.title = element_text(hjust = 0.5, size = 11))
+p4 <- unfilled + ggtitle("2 days after") + 
+  theme(plot.title = element_text(hjust = 0.5, size = 11))
+p5 <- unfilled + ggtitle("3 days after") + 
+  theme(plot.title = element_text(hjust = 0.5, size = 11))
+p6 <- unfilled + ggtitle("4 days after") + 
+  theme(plot.title = element_text(hjust = 0.5, size = 11))
 
-#Plot rectangles and declared closures
-#Filter to active rectangles
-myrect <- filter(croprect, start <= firstfive[1] & firstfive[1] <= end) 
+tbt <- plot_grid(p1, p2, p3, p4, p5, p6, ncol=6, nrow=1)
 
-#Create df of text for labeling potential closures
-textdf <- data.frame(x=c(-76.57,-76.58),y=c(-13.75,-14.5),
-                     label=c("Potential\nClosure 1","Potential Closure 2")) 
-
-textdf$label <- as.character(textdf$label)
-
-#Part a plot
-(firstplot_present <- ggplot() + 
-    #Plot closures that begin at midnight or at 6 am of next day
-    geom_sf(data=today,alpha=.3,size=2,col='black',fill='black') +
-    myThemeStuff+ 
-    theme(panel.border = element_rect(color = 'black',fill=NA),
-          legend.position = c(.87,.66), plot.margin = unit(c(0,0,0,0),"in"),
-          axis.line=element_blank(),axis.text.x=element_blank(),
-          axis.text.y=element_blank(),axis.ticks=element_blank()) + 
-    geom_sf(data=cpy, col='red',fill=NA) +
-    ggtitle("a. Sets between midnight and 3 pm on April 28, 2019\n") + 
-    geom_sf(data=cropperu) + 
-    scale_x_continuous(name=NULL,expand = c(0,0), limits = c(bbox["xmin"]-.05,bbox['xmax'])) + 
-    scale_y_continuous(name=NULL,expand = c(0,0), limits = c(bbox["ymin"], bbox["ymax"])))
-
-
-textdf$x[textdf$label=="Potential Closure 2"] <- -76.62
-
-rectplot_present <-  ggplot() + 
-    geom_sf(data=myrect, fill="dodgerblue2",col="dodgerblue2",alpha=.4,size=.15) + 
-    myThemeStuff+ 
-    ggtitle("b. Potential closures begin midnight April 29\nand end at 11:59 PM on May 1, 2019") + 
-    geom_sf(data=cropperu) + 
-    scale_x_continuous(name=NULL,expand = c(0,0), limits = c(bbox["xmin"]-.05,bbox['xmax'])) + 
-    scale_y_continuous(name=NULL,expand = c(0,0),limits = c(bbox["ymin"], bbox["ymax"])) + 
-    theme(plot.margin = unit(c(0,0,0,0),"in"),
-          panel.border = element_rect(color = 'black',fill=NA),
-          axis.line=element_blank(),axis.text.x=element_blank(),
-          axis.text.y=element_blank(),axis.ticks=element_blank()) + 
-    geom_text(data=textdf, aes(x=x,y=y,label=label),hjust=0,vjust=1,size=2.5)
-
-#Add inset to second plot
-rectplot_present <- ggdraw() +
-  draw_plot(rectplot_present) + 
-  draw_plot(insetmap, x = 0.57, y = 0.35, width = 0.5, height = 0.5) + 
-  theme(plot.margin = unit(c(0,0,0,0),"in"))
-
-stackplot_present <- plot_grid(firstplot_present, rectplot_present, ncol=2,nrow=1,rel_widths = c(1,1),rel_heights = c(1,1))
-
-
-ggsave(stackplot_present, file="Output/Figures/figure5.png",
-       w=6,h=3, units = "in", dpi=1200)
+ggsave(tbt, file=paste0("Output/Figures/figure5.pdf"),
+       w=7,h=2.8, units = "in", dpi=1200)
 
 sessionInfo()

@@ -290,11 +290,11 @@ paperFig <- function(myvar){
                    lag2plot, lag3plot, lag4plot, nrow=2, ncol=3, 
                    rel_widths = c(1.01,1,1))
   
-  ggsave(tbt, file=paste0("Output/Figures/figure10.png"),
+  ggsave(tbt, file=paste0("Output/Figures/figure8.png"),
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 
-#Make Figure 10
+#Make Figure 8
 paperFig("hetero_fleetthere")
 
 
@@ -750,7 +750,7 @@ paperFig <- function(myvar){
                    lag2plot, lag3plot, lag4plot, nrow=2, ncol=3, 
                    rel_widths = c(1.01,1,1))
   
-  ggsave(tbt, file=paste0("Output/Figures/figure9.png"),
+  ggsave(tbt, file=paste0("Output/Figures/figure7.png"),
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 

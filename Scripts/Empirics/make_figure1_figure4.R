@@ -281,7 +281,7 @@ p17 <- ggdraw() +
 tbt <- plot_grid(p17, plotlist_potcl[[2]], plotlist_potcl[[3]], plotlist_potcl[[4]],
                  plotlist_potcl[[5]], plotlist_potcl[[6]], ncol=3, nrow=2)
 
-ggsave(tbt, file="Output/Figures/figure6.png",
+ggsave(tbt, file="Output/Figures/figure4.png",
        w=7,h=(7/3)*(myheight/mywidth)*2, units = "in", dpi=1200)
 
 

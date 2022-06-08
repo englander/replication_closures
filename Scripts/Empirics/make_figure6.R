@@ -510,7 +510,7 @@ paperFig <- function(myvar, ylab){
                    lag2plot, lag3plot, lag4plot, nrow=2, ncol=3, 
                    rel_widths = c(1.01,1,1))
   
-  ggsave(tbt, file=paste0("Output/Figures/figure8.png"),
+  ggsave(tbt, file=paste0("Output/Figures/figure6.png"),
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 

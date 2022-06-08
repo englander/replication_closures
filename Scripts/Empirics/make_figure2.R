@@ -150,7 +150,7 @@ beinset <- ggdraw() +
   draw_plot(beplot) +
   draw_plot(insetplot, x = .6, y = .65, width = 0.385, height = 0.385)
 
-ggsave(beinset, file=paste0("Output/Figures/figure4.png"),
+ggsave(beinset, file=paste0("Output/Figures/figure2.png"),
        w=4,h=6, units = "in", dpi = 900)
 
 #Number of sets
