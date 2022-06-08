@@ -912,8 +912,6 @@ mean(st_area(rdf)/10^6)
   #Also calculate area of overlap of each closure with potential closure(s)
   #as a fraction (relative to area of actual closure)
   closed_nc$intersect_area_frac <- 0
-  #And time-area overlap
-  closed_nc$intersect_time_area_frac <- 0
   
   #Since want areas, project both
   rdf_proj <- st_transform(rdf, st_crs("+proj=laea +lon_0=-76.5"))
@@ -929,50 +927,22 @@ mean(st_area(rdf)/10^6)
     inter <- st_intersection(row, potcl)
     
     if(nrow(inter) > 0){
+      
       closed_nc$intersect_area_frac[i] <- as.numeric(sum(st_area(inter)) / st_area(row))
-      
-      #Also calculate time-area overlap
-      inter <- st_intersects(row, potcl)
-      
-      for(j in inter[[1]]){
-        #Intersection area of potcl[j,] with actual closed_nc area
-        myintersection <- st_intersection(row, potcl[j,]) %>%
-          st_area()
-        #Fraction of rectangle area
-        areafrac <- as.numeric(myintersection) / 
-          st_area(row) %>% as.numeric()
-        if(areafrac>1.000001){ #R has weird numerical sensitivity
-          print(paste0("areafrac > 1, ", i))
-        }
-        #Now calculate time overlap as well. Fraction of overlapping hours
-        recthours <- seq(from=potcl$start[j],to=potcl$end[j]+1,by=3600)
-        acthours <- seq(from=row$start,to=row$end+1,by=3600)
-        timefrac <- sum(acthours %in% recthours) / length(acthours)
-        
-        #Add to treatfrac
-        closed_nc$intersect_time_area_frac[i] <- closed_nc$intersect_time_area_frac[i] + 
-          areafrac*timefrac
-      }
-      
       
     }
     
   }
   
+  #intersect_area_frac exceeds 1 when overlapped by multiple potential closures
+  #In these cases, replace it with 1 because fraction cannot exceed 1
+  closed_nc$intersect_area_frac[closed_nc$intersect_area_frac > 1] <- 1
+  
   summary(closed_nc$intersect_area_frac)
   # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-  # 0.0000  0.3301  0.6691  0.6126  0.9272  1.9751
+  # 0.0000  0.3301  0.6691  0.5960  0.9272  1.0000 
   
-  summary(closed_nc$intersect_time_area_frac)
-  # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-  # 0.0000  0.1368  0.3679  0.4002  0.6281  1.1593 
-  
-  
-  rm(i, row, potcl, inter, j, myintersection, recthours, timefrac, 
-     acthours, areafrac, inter, closed_nc, rdf_proj)
-  
-  
-  
+  rm(i, row, potcl, inter, closed_nc, rdf_proj)
   
 }
 

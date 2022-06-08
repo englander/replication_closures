@@ -1,17 +1,18 @@
 rm(list=ls())
 
-#Peru time
-Sys.setenv(TZ='America/Lima')
-
-library(dplyr); library(ggplot2); library(sf)
-library(lubridate); library(Formula)
-library(purrr); library(parallel); library(lfe)
-library(cowplot); library(latex2exp)
+library(dplyr); library(ggplot2)
+library(sf);library(lubridate); library(glmnet)
+library(lfe); library(Formula); library(xtable)
+library(purrr); library(cowplot); library(tidyr)
+library(latex2exp)
 
 #Turn off spherical geometry since I wrote these scripts before sf v1
 sf::sf_use_s2(FALSE) 
 
-options(lfe.threads=12)
+options(scipen=999)
+options(lfe.threads=24)
+
+`%not in%` <- function (x, table) is.na(match(x, table, nomatch=NA_integer_))
 
 myThemeStuff <- theme(panel.background = element_blank(),
                       panel.border = element_blank(),
@@ -31,1094 +32,130 @@ myThemeStuff <- theme(panel.background = element_blank(),
                       plot.tag = element_text(family = "sans", size = 9)
 )
 
-#Load actual closures created in make_closures_df.R and create treatment bins
-{
-load("Output/Data/closed.Rdata")
 
-#Only want to use closures declared by PRODUCE from BE data
-closed <- filter(closed, days <= 5)
+#Peru time
+Sys.setenv(TZ='America/Lima')
 
-#Filter to closures during season
-closed <- filter(closed, !is.na(season) & 
-                   (season=="s1_2017" | season=="s2_2017" | 
-                      season=="s1_2018" | season=="s2_2018" | season=="s1_2019" | 
-                      season=="s2_2019")
+#Created in make_actualclosure_regressioncontrol.R
+load("Output/TempData/actualclosure_regressioncontrol.Rdata")
+
+regdf <- as.data.frame(regdf) %>% dplyr::select(-geometry)
+
+regdf <- arrange(regdf, tvar, bdist)
+
+#Millions of juveniles
+regdf <- mutate(regdf, nummjuv = numjuv/10^6)
+
+regdf <- mutate(regdf, asinhnummjuv = asinh(nummjuv), 
+               asinhtons = asinh(tons))
+
+regdf$bin <- as.factor(regdf$bin)
+regdf$bin <- relevel(regdf$bin, ref="active_in")
+
+regdf$twoweek_cellid_2p <- as.factor(regdf$twoweek_cellid_2p)
+regdf$twowk <- as.factor(regdf$twowk)
+regdf$cellid_2p <- as.factor(regdf$cellid_2p)
+regdf$startdate <- as.factor(regdf$startdate)
+
+#Drop actual or potential closures that have NA for size distribution
+regdf <- filter(regdf, !is.na(prop12hat))
+
+#How many clusters are there
+unique(regdf$twoweek_cellid_2p) %>% length()
+
+#Given variable, interact it with bin indicators, giving
+interVars <- function(var){
+  
+  mydf <- regdf
+  names(mydf)[names(mydf)==var] <- "myvar"
+  
+  #Want to manually interact var with bin indicator so I can look at each bin's coefficient
+  #relative to 0 (rather than relative to omitted category)
+  bininds <- model.matrix(~bin,data=regdf) %>% as.data.frame()
+  
+  #Drop intercept column and manually create active_in indicator column
+  bininds <- dplyr::select(bininds, -`(Intercept)`)
+  
+  bininds <- bind_cols(
+    dplyr::select(mydf, bin) %>% mutate(binactive_in = if_else(bin=="active_in",1,0)) %>%
+      dplyr::select(-bin),
+    bininds
+  )
+  
+  #Create instrument columns
+  outdf <- lapply(names(bininds), function(x){
+    
+    #Bind bin indicator column with instr
+    mycols <- dplyr::select(bininds, x) %>%
+      bind_cols(dplyr::select(mydf, myvar))
+    
+    #Rename bin indicator column so can refer to it directly
+    names(mycols)[1] <- "mybin"
+    
+    #Create instrument for bin
+    mycols <- mutate(mycols, inter = mybin*myvar) %>%
+      #And only keep this column
+      dplyr::select(inter)
+    
+    #Rename instrument column
+    names(mycols) <- paste0(substr(x,4,nchar(x)),"_",var)
+    
+    mycols
+  })
+  
+  outdf <- do.call("cbind",outdf)
+  
+  return(outdf)
+}
+
+regdf <- bind_cols(
+  regdf,
+  interVars("treatfrac")
 )
 
-#Indicator for whether closure begins at 6 am
-closed$six <- 0
-closed$six[grep("\\.25",closed$start_raw)] <- 1
+#Control group is potential closure-treatment bins with treatfrac = 0
+juvcatch <- felm(
+  as.Formula(paste0(
+    "asinhnummjuv", "~ ", 
+    paste0(grep("_treatfrac",names(regdf),value=T),collapse="+"),
+    " + clustnobs + clusttons + clustarea_km2 + kmtocoast + clusttonsperset + clusttonsperarea + ", 
+    paste0(grep("prop",names(regdf),value=T),collapse="+"),
+    "| bin + twowk:cellid_2p + startdate",
+    " | 0 | twoweek_cellid_2p")),
+  data = filter(regdf, closuretype=="actual" | treatfrac==0))
+
+
+
+#Number of treatment observations included in regression
+filter(regdf, closuretype=="actual") %>% nrow() #14472
+filter(regdf, treatfrac==0) %>% nrow() #24862
+#Total obs in regression
+juvcatch$N #39334
 
-closed <- dplyr::select(closed, start, end, closeid, season, six)
-
-#Create treatment bins
-#Have to make corresponding closed buffers and time lags
-closed <- mutate(closed, bin = "active_0",bdist=0,tvar="active")
-
-#Make closed buffers
-BufFun_closed <- function(rowind, bmin, bmax){
-  
-  row <- closed[rowind, ]
-  
-  #Project 
-  row <- st_transform(row, st_crs("+proj=laea +lon_0=-76.5"))
-  
-  #If invalid make it valid
-  if(st_is_valid(row)==FALSE){
-    row <- st_make_valid(row)
-  }
-  
-  #Buffer (in km)
-  buf <- st_buffer(row, bmax*1000)
-  
-  #Subtract inside
-  if(bmin==0){
-    inbuf <- row
-  } else{
-    inbuf <- st_buffer(row, bmin*1000)
-  }
-  
-  out <- st_difference(buf, inbuf)
-  
-  #Drop all duplicate columns
-  out <- out[,-grep("\\.1",names(out))]
-  
-  #Replace bdist column with buffer used
-  out$bdist <- bmax
-  
-  #Also correct bin
-  out$bin <- paste0(gsub("_.*","",out$bin),"_",bmax)
-  
-  #Transform back into lon lat
-  out <- st_transform(out, st_crs("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs"))
-  
-  return(out)
-}
-
-#Function to make buffer for each rectangle
-applyBufFun_closed <- function(bmin, bmax){
-  out <- lapply(1:nrow(closed), function(x){
-    BufFun_closed(x, bmin, bmax)
-  })
-  
-  out <- do.call("rbind",out)
-  
-  return(out)
-}
-
-#Apply over all buffers
-(myCores <- detectCores())
-
-cl <- makeCluster(12)
-
-clusterExport(cl, "closed")
-clusterExport(cl, "BufFun_closed")
-clusterExport(cl, "applyBufFun_closed")
-clusterEvalQ(cl, library(dplyr))
-clusterEvalQ(cl, library(sf))
-clusterEvalQ(cl, library(lwgeom))
-
-cbufs <- parLapply(cl=cl,
-                   list(
-                     c(0,10),c(10,20),c(20,30),c(30,40),c(40,50)                   
-                   ), function(x){
-                     applyBufFun_closed(bmin=x[[1]],bmax=x[[2]])
-                   })
-
-stopCluster(cl)
-rm(cl, myCores)
-
-cbufs <- do.call("rbind",cbufs)
-
-names(cbufs)[names(cbufs)!="geometry"] <- names(closed)[names(closed)!="geometry"]
-
-closed <- rbind(closed, cbufs)
-
-rm(cbufs)
-
-
-#Duplicate rectangles for leads and lags
-closed <- rbind(
-  closed,
-  #Preperiod is 9 hours before if begins at midnight; 12 hours before if begins at 6 am
-  rbind(
-    filter(closed, six==0) %>% mutate(end=start-1) %>% 
-      mutate(start=start-9*3600,tvar="lead"),
-    filter(closed, six==1) %>% mutate(end=start-1) %>% 
-      mutate(start=start-12*3600,tvar="lead")
-  ),
-  closed %>% mutate(start = end+1,end=end+24*3600*1,tvar="lag1"), 
-  closed %>% mutate(start = end+1+24*3600*1,end=end+24*3600*2,tvar="lag2"),
-  closed %>% mutate(start = end+1+24*3600*2,end=end+24*3600*3,tvar="lag3"),
-  closed %>% mutate(start = end+1+24*3600*3,end=end+24*3600*4,tvar="lag4"))
-
-#Remake bin variable
-closed$bin[closed$tvar=="lead"] <- gsub("active","lead",closed$bin[closed$tvar=="lead"])
-closed$bin[closed$tvar=="lag1"] <- gsub("active","lag1",closed$bin[closed$tvar=="lag1"])
-closed$bin[closed$tvar=="lag2"] <- gsub("active","lag2",closed$bin[closed$tvar=="lag2"])
-closed$bin[closed$tvar=="lag3"] <- gsub("active","lag3",closed$bin[closed$tvar=="lag3"])
-closed$bin[closed$tvar=="lag4"] <- gsub("active","lag4",closed$bin[closed$tvar=="lag4"])
-}
-
-
-#Created in 3. correct_be.R
-load("Output/Data/pbe_imp.Rdata")
-
-fullbe <- rename(fullbe, calatime = FechaInicioCala)
-
-#Make sf; only need a few variables
-besf <- st_multipoint(cbind(fullbe$lon, fullbe$lat))
-besf <- st_sfc(besf) %>% st_cast('POINT')
-st_crs(besf) <- st_crs("+proj=longlat +datum=WGS84 +no_defs")
-besf <- st_sf(geometry = besf, dplyr::select(fullbe, calatime, numjuv, betons, Temporada))
-
-besf <- mutate(besf, season = paste0(ifelse(nchar(Temporada)==6,"s1_","s2_"),substr(Temporada,1,4))) %>% 
-  dplyr::select(-Temporada)
-
-rm(fullbe)
-
-#Create .05 degree grid
-#Load peru EEZ. Downloaded from https://www.marineregions.org/downloads.php on July 2, 2018.
-#Version 2 - 2012 (4.96 MB) [Known issues] (created from EEZ version 7)
-eez <- st_read("C:/Users/englander/Box Sync/VMS/Data/Intersect_IHO_EEZ_v2_2012/eez.shp") %>%
-  filter(EEZ == "Peruvian Exclusive Economic Zone (disputed - Peruvian point of view)")
-
-grid <- st_make_grid(st_bbox(eez), cellsize = .05, what = 'polygons') %>%
-  st_sf()
-
-#Keep only grid cells that intersect eez
-inter <- st_intersects(eez, grid) %>% unlist()
-
-grid <- grid[inter,]
-
-#Also crop to those in North-Central zone
-grid <- st_crop(grid, c(ymin = -16, ymax = -3, xmin=-85, xmax=-70))
-
-rm(inter)
-
-#Add centroid of grid as variable
-centr <- st_centroid(grid)
-
-centrcoords <- st_coordinates(centr)
-
-#Add coordinates of centroid as columns for joining between two objects
-grid <- mutate(grid, lon_centr = centrcoords[,1], 
-               lat_centr = centrcoords[,2])
-
-centr <- mutate(centr, lon_centr = centrcoords[,1], 
-                lat_centr = centrcoords[,2])
-
-rm(centrcoords)
-
-#Create two-degree grid cell variable
-#Create 2 degree grid, created in 1. match_be_landings.R
-load("Output/Data/grid2p.Rdata")
-
-twog <- st_intersects(centr, grid2p)
-twog <- as.numeric(as.character(twog))
-
-grid <- mutate(grid, cellid_2p = twog)
-centr <- mutate(centr, cellid_2p = twog)
-
-grid <- mutate(grid, gridcellrow = 1:nrow(grid))
-
-rm(twog, grid2p, eez)
-
-#Create single-row containing bin indicator variables
-fillinds <- matrix(0,ncol=36,nrow=1) %>% as.data.frame()
-names(fillinds) <- unique(closed$bin)
-
-#Small function. Given row that I know is inside treatment window, calculate 
-#all treatment bins the row is inside
-smallTreat <- function(centrrow, threeclosed_nosf, inter, centr_nosf, mythree){
-  
-  giveninter <- inter[[centrrow]]
-  
-  #Rows of threeclosed row is inside
-  insideclosed <- threeclosed_nosf[giveninter,] %>% 
-    #Can do this because spatial rings are rings, not buffers
-    distinct(tvar, bdist)
-  
-  #Mash tvar_bdist together 
-  charvec <- mutate(insideclosed, yeszone = paste0(tvar,"_",bdist)) %>% 
-    dplyr::select(yeszone) %>% as.matrix() %>% as.character()
-  
-  #Zones that should be 1 because observation is in these zones distances
-  yeszones <- which(names(fillinds) %in% charvec)
-  
-  out <- fillinds
-  
-  out[,yeszones] <- 1
-  
-  out <- bind_cols(centr_nosf[centrrow,] %>% mutate(time=mythree), out)
-  
-  return(out)
-}
-
-#Calculate treatment for each cell-time and each of the 36 treatment bins
-#Function of three-hour unit 
-treatThree <- function(mythree){
-  
-  #Filter myclosed to this time period
-  threeclosed <- filter(myclosed, start <= (mythree + 3600*3) & 
-                          mythree <= end)
-  
-  #Cells in treatment window
-  inter <- st_intersects(centr, threeclosed)
-  
-  #Non-missing
-  treatwindow <- sapply(1:nrow(centr), function(x){
-    ifelse(length(inter[[x]])>0,1,0)
-  })
-  
-  #Centroids object without geometry column
-  centr_nosf <- as.data.frame(centr) %>% dplyr::select(-geometry)
-  
-  #Three closed without geometry column
-  threeclosed_nosf <- as.data.frame(threeclosed) %>% dplyr::select(-geometry)
-  
-  #Apply smallTreat over rows in treatwindow
-  inwindow <- map_df(which(treatwindow==1), function(x){
-    smallTreat(x, threeclosed_nosf, inter, centr_nosf, mythree)
-  })
-  
-  #Other rows have 0 for all treatment bins
-  notwindow <- map_df(which(treatwindow==0), function(x){
-    bind_cols(centr_nosf[x,] %>% mutate(time = mythree), fillinds)
-  })
-  
-  out <- bind_rows(inwindow, notwindow)
-  
-  return(out)
-  
-}
-
-
-#Parallel apply one season at a time
-
-useseason <- "s1_2017"
-{
-#Filter to season
-mybe <- filter(besf, season==useseason)
-myclosed <- filter(closed, season==useseason)
-
-#First and last day in season (either first fishing or first closure)
-firstday <- as.Date(min(mybe$calatime, myclosed$start))
-lastday <- as.Date(max(mybe$calatime, myclosed$end)) 
-
-#Three hour time blocks
-timevec <- seq(from=as.POSIXct(paste0(firstday, "00:00:00 -05")), 
-               to = as.POSIXct(paste0(lastday + 1, "00:00:00 -05")),
-               by = 3600*3)
-
-#Calculate outcome variable in each cell-time by cutting by timevec to get time, 
-#then intersecting with grid to get cell
-mybe$threehour <- cut(mybe$calatime, timevec, right = FALSE)
-
-inter <- st_intersects(mybe, grid)
-
-inter <- as.numeric(as.character(inter))
-
-mybe <- mutate(mybe, gridcellrow = inter)
-
-#Get coordinates of centroid for .05 degree grid cell
-mybe <- left_join(mybe, 
-                  as.data.frame(grid) %>% dplyr::select(-geometry),
-                  by = 'gridcellrow')
-
-#Outcome variable is summed juvenile catch, tons, and number of sets
-myoutcome <- as.data.frame(mybe) %>% dplyr::select(-geometry) %>% 
-  group_by(threehour, lon_centr, lat_centr) %>% 
-  summarise(nummjuv = sum(numjuv)/10^6, tons = sum(betons), nobs = n()) %>% 
-  group_by()
-
-myoutcome$threehour <- as.character(myoutcome$threehour) %>% as.POSIXct()
-
-rm(inter)
-
-#Calculate treatment fraction for each grid-time
-#Apply over all buffers
-(myCores <- detectCores())
-
-cl <- makeCluster(12)
-
-clusterExport(cl, "timevec")
-clusterExport(cl, "myclosed")
-clusterExport(cl, "centr")
-clusterExport(cl, "smallTreat")
-clusterExport(cl, "treatThree")
-clusterExport(cl, "fillinds")
-clusterEvalQ(cl, library(dplyr))
-clusterEvalQ(cl, library(sf))
-clusterEvalQ(cl, library(purrr))
-clusterEvalQ(cl, library(lubridate))
-
-
-treatlist <- parLapply(cl=cl,
-                      timevec, function(x){
-                     treatThree(x)
-                   })
-
-stopCluster(cl)
-rm(cl, myCores)
-
-paneldf <- bind_rows(treatlist)
-
-#Join outcomes onto paneldf
-paneldf <- left_join(
-  rename(paneldf, threehour = time), myoutcome, 
-  by = c("lon_centr","lat_centr","threehour"))
-
-#If missing outcome, it is 0
-paneldf$nummjuv[is.na(paneldf$nummjuv)] <- 0
-paneldf$tons[is.na(paneldf$tons)] <- 0
-paneldf$nobs[is.na(paneldf$nobs)] <- 0
-
-
-#Calculate two-week-of-sample and join onto df
-twoweek <- data.frame(threehour = timevec)
-
-twoweek <- mutate(twoweek, week = week(threehour), year = year(threehour))
-
-twowk <- distinct(twoweek, week, year) %>% arrange(year, week)
-
-twowk$twowk <- as.integer(NA); twowk$twowk[1] <- 1
-counter <- 1
-for(i in 2:nrow(twowk)){
-  if((counter%%2==1 & 
-      ((twowk$year[i]==twowk$year[i-1] & 
-        twowk$week[i]==twowk$week[i-1]+1) | 
-       twowk$year[i]==twowk$year[i-1]+1 & 
-       twowk$week[i]==1 & twowk$week[i-1]>=52
-      ))){
-    twowk$twowk[i] <- twowk$twowk[i-1]
-  } else{
-    twowk$twowk[i] <- twowk$twowk[i-1]+1
-  }
-  counter <- counter+1
-  #If gap, reset counter
-  if(twowk$week[i]!=twowk$week[i-1]+1 & 
-     twowk$week[i]!=1 & twowk$week[i-1]!=53){
-    counter <- 1
-  }
-}
-
-#Join
-twoweek <- left_join(twoweek, twowk, by = c("week","year"))
-
-#Join onto paneldf
-paneldf <- left_join(paneldf, dplyr::select(twoweek, threehour, twowk), by = c("threehour"))
-
-#Add season
-paneldf <- mutate(paneldf, season = useseason)
-
-#Make sure two week of sample values are different for each season
-paneldf <- mutate(paneldf, twowk = paste0(twowk,"_",season))
-
-#Create two-week-of-sample by two-degree grid cell variable
-paneldf <- mutate(paneldf, twoweek_cellid_2p = paste0(twowk, "_", cellid_2p))
-
-save(paneldf, file = paste0("Output/TempData/rasterjuv_",useseason,".Rdata"))
-
-#Clean up
-rm(useseason, paneldf, twoweek, firstday, lastday, 
-   timevec, myclosed, mybe, myoutcome, treatlist, twowk, i, counter)
-}
-
-useseason <- "s2_2017"
-{
-  #Filter to season
-  mybe <- filter(besf, season==useseason)
-  myclosed <- filter(closed, season==useseason)
-  
-  #First and last day in season (either first fishing or first closure)
-  firstday <- as.Date(min(mybe$calatime, myclosed$start))
-  lastday <- as.Date(max(mybe$calatime, myclosed$end)) 
-  
-  #Three hour time blocks
-  timevec <- seq(from=as.POSIXct(paste0(firstday, "00:00:00 -05")), 
-                 to = as.POSIXct(paste0(lastday + 1, "00:00:00 -05")),
-                 by = 3600*3)
-  
-  #Calculate outcome variable in each cell-time by cutting by timevec to get time, 
-  #then intersecting with grid to get cell
-  mybe$threehour <- cut(mybe$calatime, timevec, right = FALSE)
-  
-  inter <- st_intersects(mybe, grid)
-  
-  inter <- as.numeric(as.character(inter))
-  
-  mybe <- mutate(mybe, gridcellrow = inter)
-  
-  #Get coordinates of centroid for .05 degree grid cell
-  mybe <- left_join(mybe, 
-                    as.data.frame(grid) %>% dplyr::select(-geometry),
-                    by = 'gridcellrow')
-  
-  #Outcome variable is summed juvenile catch, tons, and number of sets
-  myoutcome <- as.data.frame(mybe) %>% dplyr::select(-geometry) %>% 
-    group_by(threehour, lon_centr, lat_centr) %>% 
-    summarise(nummjuv = sum(numjuv)/10^6, tons = sum(betons), nobs = n()) %>% 
-    group_by()
-  
-  myoutcome$threehour <- as.character(myoutcome$threehour) %>% as.POSIXct()
-  
-  rm(inter)
-  
-  #Calculate treatment fraction for each grid-time
-  #Apply over all buffers
-  (myCores <- detectCores())
-  
-  cl <- makeCluster(12)
-  
-  clusterExport(cl, "timevec")
-  clusterExport(cl, "myclosed")
-  clusterExport(cl, "centr")
-  clusterExport(cl, "smallTreat")
-  clusterExport(cl, "treatThree")
-  clusterExport(cl, "fillinds")
-  clusterEvalQ(cl, library(dplyr))
-  clusterEvalQ(cl, library(sf))
-  clusterEvalQ(cl, library(purrr))
-  clusterEvalQ(cl, library(lubridate))
-  
-  
-  treatlist <- parLapply(cl=cl,
-                         timevec, function(x){
-                           treatThree(x)
-                         })
-  
-  stopCluster(cl)
-  rm(cl, myCores)
-  
-  paneldf <- bind_rows(treatlist)
-  
-  #Join outcomes onto paneldf
-  paneldf <- left_join(
-    rename(paneldf, threehour = time), myoutcome, 
-    by = c("lon_centr","lat_centr","threehour"))
-  
-  #If missing outcome, it is 0
-  paneldf$nummjuv[is.na(paneldf$nummjuv)] <- 0
-  paneldf$tons[is.na(paneldf$tons)] <- 0
-  paneldf$nobs[is.na(paneldf$nobs)] <- 0
-  
-  
-  #Calculate two-week-of-sample and join onto df
-  twoweek <- data.frame(threehour = timevec)
-  
-  twoweek <- mutate(twoweek, week = week(threehour), year = year(threehour))
-  
-  twowk <- distinct(twoweek, week, year) %>% arrange(year, week)
-  
-  twowk$twowk <- as.integer(NA); twowk$twowk[1] <- 1
-  counter <- 1
-  for(i in 2:nrow(twowk)){
-    if((counter%%2==1 & 
-        ((twowk$year[i]==twowk$year[i-1] & 
-          twowk$week[i]==twowk$week[i-1]+1) | 
-         twowk$year[i]==twowk$year[i-1]+1 & 
-         twowk$week[i]==1 & twowk$week[i-1]>=52
-        ))){
-      twowk$twowk[i] <- twowk$twowk[i-1]
-    } else{
-      twowk$twowk[i] <- twowk$twowk[i-1]+1
-    }
-    counter <- counter+1
-    #If gap, reset counter
-    if(twowk$week[i]!=twowk$week[i-1]+1 & 
-       twowk$week[i]!=1 & twowk$week[i-1]!=53){
-      counter <- 1
-    }
-  }
-  
-  #Join
-  twoweek <- left_join(twoweek, twowk, by = c("week","year"))
-  
-  #Join onto paneldf
-  paneldf <- left_join(paneldf, dplyr::select(twoweek, threehour, twowk), by = c("threehour"))
-  
-  #Add season
-  paneldf <- mutate(paneldf, season = useseason)
-  
-  #Make sure two week of sample values are different for each season
-  paneldf <- mutate(paneldf, twowk = paste0(twowk,"_",season))
-  
-  #Create two-week-of-sample by two-degree grid cell variable
-  paneldf <- mutate(paneldf, twoweek_cellid_2p = paste0(twowk, "_", cellid_2p))
-  
-  save(paneldf, file = paste0("Output/TempData/rasterjuv_",useseason,".Rdata"))
-  
-  #Clean up
-  rm(useseason, paneldf, twoweek, firstday, lastday, 
-     timevec, myclosed, mybe, myoutcome, treatlist, twowk, i, counter)
-}
-
-useseason <- "s1_2018"
-{
-  #Filter to season
-  mybe <- filter(besf, season==useseason)
-  myclosed <- filter(closed, season==useseason)
-  
-  #First and last day in season (either first fishing or first closure)
-  firstday <- as.Date(min(mybe$calatime, myclosed$start))
-  lastday <- as.Date(max(mybe$calatime, myclosed$end)) 
-  
-  #Three hour time blocks
-  timevec <- seq(from=as.POSIXct(paste0(firstday, "00:00:00 -05")), 
-                 to = as.POSIXct(paste0(lastday + 1, "00:00:00 -05")),
-                 by = 3600*3)
-  
-  #Calculate outcome variable in each cell-time by cutting by timevec to get time, 
-  #then intersecting with grid to get cell
-  mybe$threehour <- cut(mybe$calatime, timevec, right = FALSE)
-  
-  inter <- st_intersects(mybe, grid)
-  
-  inter <- as.numeric(as.character(inter))
-  
-  mybe <- mutate(mybe, gridcellrow = inter)
-  
-  #Get coordinates of centroid for .05 degree grid cell
-  mybe <- left_join(mybe, 
-                    as.data.frame(grid) %>% dplyr::select(-geometry),
-                    by = 'gridcellrow')
-  
-  #Outcome variable is summed juvenile catch, tons, and number of sets
-  myoutcome <- as.data.frame(mybe) %>% dplyr::select(-geometry) %>% 
-    group_by(threehour, lon_centr, lat_centr) %>% 
-    summarise(nummjuv = sum(numjuv)/10^6, tons = sum(betons), nobs = n()) %>% 
-    group_by()
-  
-  myoutcome$threehour <- as.character(myoutcome$threehour) %>% as.POSIXct()
-  
-  rm(inter)
-  
-  #Calculate treatment fraction for each grid-time
-  #Apply over all buffers
-  (myCores <- detectCores())
-  
-  cl <- makeCluster(12)
-  
-  clusterExport(cl, "timevec")
-  clusterExport(cl, "myclosed")
-  clusterExport(cl, "centr")
-  clusterExport(cl, "smallTreat")
-  clusterExport(cl, "treatThree")
-  clusterExport(cl, "fillinds")
-  clusterEvalQ(cl, library(dplyr))
-  clusterEvalQ(cl, library(sf))
-  clusterEvalQ(cl, library(purrr))
-  clusterEvalQ(cl, library(lubridate))
-  
-  
-  treatlist <- parLapply(cl=cl,
-                         timevec, function(x){
-                           treatThree(x)
-                         })
-  
-  stopCluster(cl)
-  rm(cl, myCores)
-  
-  paneldf <- bind_rows(treatlist)
-  
-  #Join outcomes onto paneldf
-  paneldf <- left_join(
-    rename(paneldf, threehour = time), myoutcome, 
-    by = c("lon_centr","lat_centr","threehour"))
-  
-  #If missing outcome, it is 0
-  paneldf$nummjuv[is.na(paneldf$nummjuv)] <- 0
-  paneldf$tons[is.na(paneldf$tons)] <- 0
-  paneldf$nobs[is.na(paneldf$nobs)] <- 0
-  
-  
-  #Calculate two-week-of-sample and join onto df
-  twoweek <- data.frame(threehour = timevec)
-  
-  twoweek <- mutate(twoweek, week = week(threehour), year = year(threehour))
-  
-  twowk <- distinct(twoweek, week, year) %>% arrange(year, week)
-  
-  twowk$twowk <- as.integer(NA); twowk$twowk[1] <- 1
-  counter <- 1
-  for(i in 2:nrow(twowk)){
-    if((counter%%2==1 & 
-        ((twowk$year[i]==twowk$year[i-1] & 
-          twowk$week[i]==twowk$week[i-1]+1) | 
-         twowk$year[i]==twowk$year[i-1]+1 & 
-         twowk$week[i]==1 & twowk$week[i-1]>=52
-        ))){
-      twowk$twowk[i] <- twowk$twowk[i-1]
-    } else{
-      twowk$twowk[i] <- twowk$twowk[i-1]+1
-    }
-    counter <- counter+1
-    #If gap, reset counter
-    if(twowk$week[i]!=twowk$week[i-1]+1 & 
-       twowk$week[i]!=1 & twowk$week[i-1]!=53){
-      counter <- 1
-    }
-  }
-  
-  #Join
-  twoweek <- left_join(twoweek, twowk, by = c("week","year"))
-  
-  #Join onto paneldf
-  paneldf <- left_join(paneldf, dplyr::select(twoweek, threehour, twowk), by = c("threehour"))
-  
-  #Add season
-  paneldf <- mutate(paneldf, season = useseason)
-  
-  #Make sure two week of sample values are different for each season
-  paneldf <- mutate(paneldf, twowk = paste0(twowk,"_",season))
-  
-  #Create two-week-of-sample by two-degree grid cell variable
-  paneldf <- mutate(paneldf, twoweek_cellid_2p = paste0(twowk, "_", cellid_2p))
-  
-  save(paneldf, file = paste0("Output/TempData/rasterjuv_",useseason,".Rdata"))
-  
-  #Clean up
-  rm(useseason, paneldf, twoweek, firstday, lastday, 
-     timevec, myclosed, mybe, myoutcome, treatlist, twowk, i, counter)
-}
-
-useseason <- "s2_2018"
-{
-  #Filter to season
-  mybe <- filter(besf, season==useseason)
-  myclosed <- filter(closed, season==useseason)
-  
-  #First and last day in season (either first fishing or first closure)
-  firstday <- as.Date(min(mybe$calatime, myclosed$start))
-  lastday <- as.Date(max(mybe$calatime, myclosed$end)) 
-  
-  #Three hour time blocks
-  timevec <- seq(from=as.POSIXct(paste0(firstday, "00:00:00 -05")), 
-                 to = as.POSIXct(paste0(lastday + 1, "00:00:00 -05")),
-                 by = 3600*3)
-  
-  #Calculate outcome variable in each cell-time by cutting by timevec to get time, 
-  #then intersecting with grid to get cell
-  mybe$threehour <- cut(mybe$calatime, timevec, right = FALSE)
-  
-  inter <- st_intersects(mybe, grid)
-  
-  inter <- as.numeric(as.character(inter))
-  
-  mybe <- mutate(mybe, gridcellrow = inter)
-  
-  #Get coordinates of centroid for .05 degree grid cell
-  mybe <- left_join(mybe, 
-                    as.data.frame(grid) %>% dplyr::select(-geometry),
-                    by = 'gridcellrow')
-  
-  #Outcome variable is summed juvenile catch, tons, and number of sets
-  myoutcome <- as.data.frame(mybe) %>% dplyr::select(-geometry) %>% 
-    group_by(threehour, lon_centr, lat_centr) %>% 
-    summarise(nummjuv = sum(numjuv)/10^6, tons = sum(betons), nobs = n()) %>% 
-    group_by()
-  
-  myoutcome$threehour <- as.character(myoutcome$threehour) %>% as.POSIXct()
-  
-  rm(inter)
-  
-  #Calculate treatment fraction for each grid-time
-  #Apply over all buffers
-  (myCores <- detectCores())
-  
-  cl <- makeCluster(12)
-  
-  clusterExport(cl, "timevec")
-  clusterExport(cl, "myclosed")
-  clusterExport(cl, "centr")
-  clusterExport(cl, "smallTreat")
-  clusterExport(cl, "treatThree")
-  clusterExport(cl, "fillinds")
-  clusterEvalQ(cl, library(dplyr))
-  clusterEvalQ(cl, library(sf))
-  clusterEvalQ(cl, library(purrr))
-  clusterEvalQ(cl, library(lubridate))
-  
-  
-  treatlist <- parLapply(cl=cl,
-                         timevec, function(x){
-                           treatThree(x)
-                         })
-  
-  stopCluster(cl)
-  rm(cl, myCores)
-  
-  paneldf <- bind_rows(treatlist)
-  
-  #Join outcomes onto paneldf
-  paneldf <- left_join(
-    rename(paneldf, threehour = time), myoutcome, 
-    by = c("lon_centr","lat_centr","threehour"))
-  
-  #If missing outcome, it is 0
-  paneldf$nummjuv[is.na(paneldf$nummjuv)] <- 0
-  paneldf$tons[is.na(paneldf$tons)] <- 0
-  paneldf$nobs[is.na(paneldf$nobs)] <- 0
-  
-  
-  #Calculate two-week-of-sample and join onto df
-  twoweek <- data.frame(threehour = timevec)
-  
-  twoweek <- mutate(twoweek, week = week(threehour), year = year(threehour))
-  
-  twowk <- distinct(twoweek, week, year) %>% arrange(year, week)
-  
-  twowk$twowk <- as.integer(NA); twowk$twowk[1] <- 1
-  counter <- 1
-  for(i in 2:nrow(twowk)){
-    if((counter%%2==1 & 
-        ((twowk$year[i]==twowk$year[i-1] & 
-          twowk$week[i]==twowk$week[i-1]+1) | 
-         twowk$year[i]==twowk$year[i-1]+1 & 
-         twowk$week[i]==1 & twowk$week[i-1]>=52
-        ))){
-      twowk$twowk[i] <- twowk$twowk[i-1]
-    } else{
-      twowk$twowk[i] <- twowk$twowk[i-1]+1
-    }
-    counter <- counter+1
-    #If gap, reset counter
-    if(twowk$week[i]!=twowk$week[i-1]+1 & 
-       twowk$week[i]!=1 & twowk$week[i-1]!=53){
-      counter <- 1
-    }
-  }
-  
-  #Join
-  twoweek <- left_join(twoweek, twowk, by = c("week","year"))
-  
-  #Join onto paneldf
-  paneldf <- left_join(paneldf, dplyr::select(twoweek, threehour, twowk), by = c("threehour"))
-  
-  #Add season
-  paneldf <- mutate(paneldf, season = useseason)
-  
-  #Make sure two week of sample values are different for each season
-  paneldf <- mutate(paneldf, twowk = paste0(twowk,"_",season))
-  
-  #Create two-week-of-sample by two-degree grid cell variable
-  paneldf <- mutate(paneldf, twoweek_cellid_2p = paste0(twowk, "_", cellid_2p))
-  
-  save(paneldf, file = paste0("Output/TempData/rasterjuv_",useseason,".Rdata"))
-  
-  #Clean up
-  rm(useseason, paneldf, twoweek, firstday, lastday, 
-     timevec, myclosed, mybe, myoutcome, treatlist, twowk, i, counter)
-}
-
-useseason <- "s1_2019"
-{
-  #Filter to season
-  mybe <- filter(besf, season==useseason)
-  myclosed <- filter(closed, season==useseason)
-  
-  #First and last day in season (either first fishing or first closure)
-  firstday <- as.Date(min(mybe$calatime, myclosed$start))
-  lastday <- as.Date(max(mybe$calatime, myclosed$end)) 
-  
-  #Three hour time blocks
-  timevec <- seq(from=as.POSIXct(paste0(firstday, "00:00:00 -05")), 
-                 to = as.POSIXct(paste0(lastday + 1, "00:00:00 -05")),
-                 by = 3600*3)
-  
-  #Calculate outcome variable in each cell-time by cutting by timevec to get time, 
-  #then intersecting with grid to get cell
-  mybe$threehour <- cut(mybe$calatime, timevec, right = FALSE)
-  
-  inter <- st_intersects(mybe, grid)
-  
-  inter <- as.numeric(as.character(inter))
-  
-  mybe <- mutate(mybe, gridcellrow = inter)
-  
-  #Get coordinates of centroid for .05 degree grid cell
-  mybe <- left_join(mybe, 
-                    as.data.frame(grid) %>% dplyr::select(-geometry),
-                    by = 'gridcellrow')
-  
-  #Outcome variable is summed juvenile catch, tons, and number of sets
-  myoutcome <- as.data.frame(mybe) %>% dplyr::select(-geometry) %>% 
-    group_by(threehour, lon_centr, lat_centr) %>% 
-    summarise(nummjuv = sum(numjuv)/10^6, tons = sum(betons), nobs = n()) %>% 
-    group_by()
-  
-  myoutcome$threehour <- as.character(myoutcome$threehour) %>% as.POSIXct()
-  
-  rm(inter)
-  
-  #Calculate treatment fraction for each grid-time
-  #Apply over all buffers
-  (myCores <- detectCores())
-  
-  cl <- makeCluster(12)
-  
-  clusterExport(cl, "timevec")
-  clusterExport(cl, "myclosed")
-  clusterExport(cl, "centr")
-  clusterExport(cl, "smallTreat")
-  clusterExport(cl, "treatThree")
-  clusterExport(cl, "fillinds")
-  clusterEvalQ(cl, library(dplyr))
-  clusterEvalQ(cl, library(sf))
-  clusterEvalQ(cl, library(purrr))
-  clusterEvalQ(cl, library(lubridate))
-  
-  
-  treatlist <- parLapply(cl=cl,
-                         timevec, function(x){
-                           treatThree(x)
-                         })
-  
-  stopCluster(cl)
-  rm(cl, myCores)
-  
-  paneldf <- bind_rows(treatlist)
-  
-  #Join outcomes onto paneldf
-  paneldf <- left_join(
-    rename(paneldf, threehour = time), myoutcome, 
-    by = c("lon_centr","lat_centr","threehour"))
-  
-  #If missing outcome, it is 0
-  paneldf$nummjuv[is.na(paneldf$nummjuv)] <- 0
-  paneldf$tons[is.na(paneldf$tons)] <- 0
-  paneldf$nobs[is.na(paneldf$nobs)] <- 0
-  
-  
-  #Calculate two-week-of-sample and join onto df
-  twoweek <- data.frame(threehour = timevec)
-  
-  twoweek <- mutate(twoweek, week = week(threehour), year = year(threehour))
-  
-  twowk <- distinct(twoweek, week, year) %>% arrange(year, week)
-  
-  twowk$twowk <- as.integer(NA); twowk$twowk[1] <- 1
-  counter <- 1
-  for(i in 2:nrow(twowk)){
-    if((counter%%2==1 & 
-        ((twowk$year[i]==twowk$year[i-1] & 
-          twowk$week[i]==twowk$week[i-1]+1) | 
-         twowk$year[i]==twowk$year[i-1]+1 & 
-         twowk$week[i]==1 & twowk$week[i-1]>=52
-        ))){
-      twowk$twowk[i] <- twowk$twowk[i-1]
-    } else{
-      twowk$twowk[i] <- twowk$twowk[i-1]+1
-    }
-    counter <- counter+1
-    #If gap, reset counter
-    if(twowk$week[i]!=twowk$week[i-1]+1 & 
-       twowk$week[i]!=1 & twowk$week[i-1]!=53){
-      counter <- 1
-    }
-  }
-  
-  #Join
-  twoweek <- left_join(twoweek, twowk, by = c("week","year"))
-  
-  #Join onto paneldf
-  paneldf <- left_join(paneldf, dplyr::select(twoweek, threehour, twowk), by = c("threehour"))
-  
-  #Add season
-  paneldf <- mutate(paneldf, season = useseason)
-  
-  #Make sure two week of sample values are different for each season
-  paneldf <- mutate(paneldf, twowk = paste0(twowk,"_",season))
-  
-  #Create two-week-of-sample by two-degree grid cell variable
-  paneldf <- mutate(paneldf, twoweek_cellid_2p = paste0(twowk, "_", cellid_2p))
-  
-  save(paneldf, file = paste0("Output/TempData/rasterjuv_",useseason,".Rdata"))
-  
-  #Clean up
-  rm(useseason, paneldf, twoweek, firstday, lastday, 
-     timevec, myclosed, mybe, myoutcome, treatlist, twowk, i, counter)
-}
-
-useseason <- "s2_2019"
-{
-  #Filter to season
-  mybe <- filter(besf, season==useseason)
-  myclosed <- filter(closed, season==useseason)
-  
-  #First and last day in season (either first fishing or first closure)
-  firstday <- as.Date(min(mybe$calatime, myclosed$start))
-  lastday <- as.Date(max(mybe$calatime, myclosed$end)) 
-  
-  #Three hour time blocks
-  timevec <- seq(from=as.POSIXct(paste0(firstday, "00:00:00 -05")), 
-                 to = as.POSIXct(paste0(lastday + 1, "00:00:00 -05")),
-                 by = 3600*3)
-  
-  #Calculate outcome variable in each cell-time by cutting by timevec to get time, 
-  #then intersecting with grid to get cell
-  mybe$threehour <- cut(mybe$calatime, timevec, right = FALSE)
-  
-  inter <- st_intersects(mybe, grid)
-  
-  inter <- as.numeric(as.character(inter))
-  
-  mybe <- mutate(mybe, gridcellrow = inter)
-  
-  #Get coordinates of centroid for .05 degree grid cell
-  mybe <- left_join(mybe, 
-                    as.data.frame(grid) %>% dplyr::select(-geometry),
-                    by = 'gridcellrow')
-  
-  #Outcome variable is summed juvenile catch, tons, and number of sets
-  myoutcome <- as.data.frame(mybe) %>% dplyr::select(-geometry) %>% 
-    group_by(threehour, lon_centr, lat_centr) %>% 
-    summarise(nummjuv = sum(numjuv)/10^6, tons = sum(betons), nobs = n()) %>% 
-    group_by()
-  
-  myoutcome$threehour <- as.character(myoutcome$threehour) %>% as.POSIXct()
-  
-  rm(inter)
-  
-  #Calculate treatment fraction for each grid-time
-  #Apply over all buffers
-  (myCores <- detectCores())
-  
-  cl <- makeCluster(12)
-  
-  clusterExport(cl, "timevec")
-  clusterExport(cl, "myclosed")
-  clusterExport(cl, "centr")
-  clusterExport(cl, "smallTreat")
-  clusterExport(cl, "treatThree")
-  clusterExport(cl, "fillinds")
-  clusterEvalQ(cl, library(dplyr))
-  clusterEvalQ(cl, library(sf))
-  clusterEvalQ(cl, library(purrr))
-  clusterEvalQ(cl, library(lubridate))
-  
-  
-  treatlist <- parLapply(cl=cl,
-                         timevec, function(x){
-                           treatThree(x)
-                         })
-  
-  stopCluster(cl)
-  rm(cl, myCores)
-  
-  paneldf <- bind_rows(treatlist)
-  
-  #Join outcomes onto paneldf
-  paneldf <- left_join(
-    rename(paneldf, threehour = time), myoutcome, 
-    by = c("lon_centr","lat_centr","threehour"))
-  
-  #If missing outcome, it is 0
-  paneldf$nummjuv[is.na(paneldf$nummjuv)] <- 0
-  paneldf$tons[is.na(paneldf$tons)] <- 0
-  paneldf$nobs[is.na(paneldf$nobs)] <- 0
-  
-  
-  #Calculate two-week-of-sample and join onto df
-  twoweek <- data.frame(threehour = timevec)
-  
-  twoweek <- mutate(twoweek, week = week(threehour), year = year(threehour))
-  
-  twowk <- distinct(twoweek, week, year) %>% arrange(year, week)
-  
-  twowk$twowk <- as.integer(NA); twowk$twowk[1] <- 1
-  counter <- 1
-  for(i in 2:nrow(twowk)){
-    if((counter%%2==1 & 
-        ((twowk$year[i]==twowk$year[i-1] & 
-          twowk$week[i]==twowk$week[i-1]+1) | 
-         twowk$year[i]==twowk$year[i-1]+1 & 
-         twowk$week[i]==1 & twowk$week[i-1]>=52
-        ))){
-      twowk$twowk[i] <- twowk$twowk[i-1]
-    } else{
-      twowk$twowk[i] <- twowk$twowk[i-1]+1
-    }
-    counter <- counter+1
-    #If gap, reset counter
-    if(twowk$week[i]!=twowk$week[i-1]+1 & 
-       twowk$week[i]!=1 & twowk$week[i-1]!=53){
-      counter <- 1
-    }
-  }
-  
-  #Join
-  twoweek <- left_join(twoweek, twowk, by = c("week","year"))
-  
-  #Join onto paneldf
-  paneldf <- left_join(paneldf, dplyr::select(twoweek, threehour, twowk), by = c("threehour"))
-  
-  #Add season
-  paneldf <- mutate(paneldf, season = useseason)
-  
-  #Make sure two week of sample values are different for each season
-  paneldf <- mutate(paneldf, twowk = paste0(twowk,"_",season))
-  
-  #Create two-week-of-sample by two-degree grid cell variable
-  paneldf <- mutate(paneldf, twoweek_cellid_2p = paste0(twowk, "_", cellid_2p))
-  
-  save(paneldf, file = paste0("Output/TempData/rasterjuv_",useseason,".Rdata"))
-  
-  #Clean up
-  rm(useseason, paneldf, twoweek, firstday, lastday, 
-     timevec, myclosed, mybe, myoutcome, treatlist, twowk, i, counter)
-}
-
-#Load and bind data from each season
-load("Output/TempData/rasterjuv_s1_2017.Rdata")
-regdf <- paneldf
-
-loadvec <- c("s2_2017","s1_2018","s2_2018","s1_2019","s2_2019")
-
-for(i in loadvec){
-
-  load(paste0("Output/TempData/rasterjuv_",i,".Rdata"))
-
-  regdf <- bind_rows(regdf, paneldf)
-
-}
-
-rm(i, paneldf, loadvec)
-
-regdf$lon_centr <- as.factor(regdf$lon_centr)
-regdf$lat_centr <- as.factor(regdf$lat_centr)
-regdf$threehour <- as.factor(regdf$threehour)
-regdf$twoweek_cellid_2p <- as.factor(regdf$twoweek_cellid_2p)
-
-regdf <- mutate(regdf, asinhnummjuv = asinh(nummjuv))
-
-formlfe <- as.Formula(paste0(
-  "asinhnummjuv", "~ ", 
-  paste0(grep("lead_|active_|lag",names(regdf),value=T),collapse="+"),
-  " | lon_centr:lat_centr + threehour + twoweek_cellid_2p | 0 | twoweek_cellid_2p"))
-
-juvcatch <- felm(formlfe, data=regdf)
-
-#Plot treatment coefficients and standard errors
 jvtab <- summary(juvcatch)[["coefficients"]]
 
 jvtab <- mutate(as.data.frame(jvtab), bin = rownames(jvtab))
 
+jvtab <- jvtab[grep("treatfrac",jvtab$bin),]
+
+jvtab$bin <- gsub("_treatfrac","",jvtab$bin)
+
 jvtab <- dplyr::select(jvtab, -`t value`, -`Pr(>|t|)`)
 
-jvtab <- rename(jvtab, rasterjuv = Estimate, rasterjuvse = `Cluster s.e.`)
+jvtab <- rename(jvtab, actualclosure_regressioncontrol = Estimate, se = `Cluster s.e.`)
 
 #Confidence intervals
-jvtab <- mutate(jvtab, rasterjuv_ub = rasterjuv + rasterjuvse*qnorm(.975), 
-       rasterjuv_lb = rasterjuv - rasterjuvse*qnorm(.975))
+jvtab <- mutate(jvtab, actualclosure_regressioncontrol_ub = actualclosure_regressioncontrol + se*qnorm(.975), 
+                actualclosure_regressioncontrol_lb = actualclosure_regressioncontrol - se*qnorm(.975))
 
 #Separate tvar and bdist variables
 jvtab$bdist <- gsub(".*_","",jvtab$bin)
 jvtab$bdist <- as.numeric(jvtab$bdist)
 jvtab$tvar <- gsub("_.*","",jvtab$bin)
+jvtab$bdist[grep("_in",jvtab$bin)] <- 0
+jvtab$tvar[jvtab$tvar=="lead9hours"] <- "lead"
 
-#Function of one time period and dependent variable
+#Function of one event day and dependent variable
 singlePlot <- function(myvar, mytvar, ylab){
   
   #Title
@@ -1144,33 +181,29 @@ singlePlot <- function(myvar, mytvar, ylab){
   myymin <- min(usedf$lb)
   myymax <- max(usedf$ub)
   
-  
   if(mytvar=="lead"|mytvar=="lag2"){
-    
-    plot <- ggplot(data=filter(usedf, tvar==mytvar),aes(x=bdist)) + 
-      geom_hline(aes(yintercept=0)) + 
-      geom_point(aes(y=plotvar)) + 
-      scale_x_continuous("",breaks=seq(from=0,to=50,by=10),
-                         labels = c("Inside","10 km","20 km","30 km","40 km","50 km")) +
-      scale_y_continuous(ylab,limits = c(myymin,myymax),
-                         breaks = scales::pretty_breaks(n=10)) + 
-      myThemeStuff + 
-      ggtitle(tit) + 
-      geom_errorbar(data=filter(usedf, tvar==mytvar), aes(x=bdist,ymin=lb,ymax=ub),width=0)
-
-  } else{
   plot <- ggplot(data=filter(usedf, tvar==mytvar),aes(x=bdist)) + 
     geom_hline(aes(yintercept=0)) + 
     geom_point(aes(y=plotvar)) + 
     scale_x_continuous("",breaks=seq(from=0,to=50,by=10),
                        labels = c("Inside","10 km","20 km","30 km","40 km","50 km")) +
-    scale_y_continuous("",limits = c(myymin,myymax),
+    scale_y_continuous(ylab,limits = c(myymin,myymax),
                        breaks = scales::pretty_breaks(n=10)) + 
     myThemeStuff + 
     ggtitle(tit) + 
     geom_errorbar(data=filter(usedf, tvar==mytvar), aes(x=bdist,ymin=lb,ymax=ub),width=0)
+  } else{
+    plot <- ggplot(data=filter(usedf, tvar==mytvar),aes(x=bdist)) + 
+      geom_hline(aes(yintercept=0)) + 
+      geom_point(aes(y=plotvar)) + 
+      scale_x_continuous("",breaks=seq(from=0,to=50,by=10),
+                         labels = c("Inside","10 km","20 km","30 km","40 km","50 km")) +
+      scale_y_continuous("",limits = c(myymin,myymax),
+                         breaks = scales::pretty_breaks(n=10)) + 
+      myThemeStuff + 
+      ggtitle(tit) + 
+      geom_errorbar(data=filter(usedf, tvar==mytvar), aes(x=bdist,ymin=lb,ymax=ub),width=0)
   }
-
   
   return(plot)
 }
@@ -1206,7 +239,171 @@ paperFig <- function(myvar, ylab){
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 
-paperFig("rasterjuv",TeX("$\\beta_{st}$ coefficient and 95% confidence interval"))
 
+paperFig("actualclosure_regressioncontrol",
+         TeX("$\\beta_{st}$ coefficient and 95% confidence interval (Equation 1)"))
+
+
+#Calculate level effect for text of paper
+jvtab <- rename(jvtab, Estimate = actualclosure_regressioncontrol)
+
+#Calculate juv1 inside closures
+#then calculate juv0. Then scale up both by ratio of nummjuv in closures 
+#to total numjuv.
+toteffect_juv <- group_by(regdf, bin, tvar, bdist) %>% 
+  summarise(juv1 = sum(nummjuv)) %>%
+  left_join(dplyr::select(jvtab, -tvar, -bdist), by = 'bin') %>% 
+  mutate(juv0 = juv1/(exp(Estimate))) %>% 
+  mutate(chmjuv = juv1 - juv0) %>%
+  arrange(tvar, bdist) %>% ungroup()
+
+#Created in 3. correct_be.R
+load("Output/Data/pbe_imp.Rdata")
+
+#Total effect, not accounting for reallocation
+changejuv <- (sum(fullbe$numjuv,na.rm=T) / sum(regdf$numjuv, na.rm=T)) * sum(toteffect_juv$chmjuv)
+
+toteffect_juv <- rename(toteffect_juv, juvcoef = Estimate, juvse = se)
+
+#Calculate delta method standard errors for change in millions of juveniles caught
+library(msm)
+
+toteffect_juv <- mutate(toteffect_juv, chmjuvse = as.numeric(NA), 
+                        chmjuv_scaled = chmjuv * (sum(fullbe$numjuv,na.rm=T) / sum(regdf$numjuv, na.rm=T)),
+                        chmjuvse_scaled = as.numeric(NA), 
+                        juv0se = as.numeric(NA))
+
+scaleconstant <- (sum(fullbe$numjuv,na.rm=T) / sum(regdf$numjuv, na.rm=T))
+
+for(mybin in toteffect_juv$bin){
+  
+  #Filter toteffect_juv to mybin
+  mydf <- filter(toteffect_juv, bin==mybin)
+  
+  #mypj <- mydf$meanpj/100 %>% as.character() %>% as.numeric()
+  myjuv1 <- mydf$juv1
+  myjuvcoef <- mydf$juvcoef
+  myjuvvcov <- mydf$juvse^2
+  
+  #Delta se for juv0. Random variable being transformed is myjuvcoef
+  juv0_delta <- deltamethod(~ (myjuv1 / (exp(x1))), myjuvcoef, myjuvvcov, ses=T)
+  
+  #Plug this value into toteffect_juv
+  toteffect_juv$juv0se[toteffect_juv$bin==mybin] <- juv0_delta
+  
+  #Delta se for chmjuvse. Random variable being transformed is myjuvcoef
+  chmjuv_delta <- deltamethod( ~ myjuv1 - (myjuv1/(exp(x1))),
+                               myjuvcoef,
+                               myjuvvcov,
+                               ses=T
+  )
+  
+  #Plug this value into toteffect_juv
+  toteffect_juv$chmjuvse[toteffect_juv$bin==mybin] <- chmjuv_delta
+  
+  #Delta se for scaled chmjuvse. Random variable being transformed is myjuvcoef
+  chmjuv_scaled_delta <- deltamethod( ~ (myjuv1 - (myjuv1/(exp(x1))))*scaleconstant,
+                                      myjuvcoef,
+                                      myjuvvcov,
+                                      ses=T
+  )
+  
+  #Plug this value into toteffect_juv
+  toteffect_juv$chmjuvse_scaled[toteffect_juv$bin==mybin] <- chmjuv_scaled_delta
+  
+}
+
+
+
+
+#Closures cannot increases tons caught because of TAC, so account for this reallocation
+#by estimating how policy affects tons caught
+tonscaught <- felm(
+  as.Formula(paste0(
+    "asinhtons", "~ ", 
+    "treatfrac ",
+    " + clustnobs + clusttons + clustarea_km2 + kmtocoast + clusttonsperset + clusttonsperarea + ", 
+    paste0(grep("prop",names(regdf),value=T),collapse="+"),
+    "| bin + twowk:cellid_2p + startdate",
+    " | 0 | twoweek_cellid_2p")),
+  data =regdf)
+
+tonscoef <- summary(tonscaught)[["coefficients"]]["treatfrac","Estimate"]
+
+#Don't reallocate tons from 2017 second season or 2019 second season because they were both 
+#shut down well before TAC was reached. 
+
+#Tons caught in state of world I observe in seasons where TAC hit
+tons1 <- sum(fullbe$betons[fullbe$Temporada!="2017-II" & fullbe$Temporada!="2019-II"])
+
+#Change in tons because of policy
+ctons <- tons1 - tons1/exp(tonscoef) 
+
+#Average pj outside of treatment window
+avgpjoutside <- filter(fullbe, lead_0==0 & lead_10==0 & lead_20==0 & lead_30==0 & lead_40==0 & lead_50==0 & 
+                         active_0==0 & active_10==0 & active_20==0 & active_30==0 & active_40==0 & active_50==0 & 
+                         lag1_0==0 & lag1_10==0 & lag1_20==0 & lag1_30==0 & lag1_40==0 & lag1_50==0 & 
+                         lag2_0==0 & lag2_10==0 & lag2_20==0 & lag2_30==0 & lag2_40==0 & lag2_50==0 & 
+                         lag3_0==0 & lag3_10==0 & lag3_20==0 & lag3_30==0 & lag3_40==0 & lag3_50==0 & 
+                         lag4_0==0 & lag4_10==0 & lag4_20==0 & lag4_30==0 & lag4_40==0 & lag4_50==0 & 
+                         !is.na(numindivids) & !is.na(bepjhat) & Temporada!="2017-II" & Temporada!="2019-II") %>%
+  #Weight by tons
+  mutate(pjweighted = bepjhat*numindivids) %>%  
+  summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100
+
+
+#Avg weight of individual caught outside of treatment window
+avgweightoutside <- filter(fullbe, lead_0==0 & lead_10==0 & lead_20==0 & lead_30==0 & lead_40==0 & lead_50==0 & 
+                             active_0==0 & active_10==0 & active_20==0 & active_30==0 & active_40==0 & active_50==0 & 
+                             lag1_0==0 & lag1_10==0 & lag1_20==0 & lag1_30==0 & lag1_40==0 & lag1_50==0 & 
+                             lag2_0==0 & lag2_10==0 & lag2_20==0 & lag2_30==0 & lag2_40==0 & lag2_50==0 & 
+                             lag3_0==0 & lag3_10==0 & lag3_20==0 & lag3_30==0 & lag3_40==0 & lag3_50==0 & 
+                             lag4_0==0 & lag4_10==0 & lag4_20==0 & lag4_30==0 & lag4_40==0 & lag4_50==0 & 
+                             !is.na(numindivids) & !is.na(avgweightg) & Temporada!="2017-II" & Temporada!="2019-II") %>%
+  #Weight by tons
+  mutate(weightweighted = avgweightg*numindivids) %>% 
+  summarise(avgweightg = sum(weightweighted)/sum(numindivids)) %>% as.numeric()
+
+
+#Decrease in individuals caught outside of treatment window in millions
+#(converting tons to g cancels out conversion to millions)
+chindividsoutside <- -ctons/avgweightoutside
+
+chjuvsoutside <- chindividsoutside*avgpjoutside
+
+#Now can calculate change in juvenile catch due to policy, accounting for reallocation
+(chmjuvsstart <- changejuv + chjuvsoutside) #34449.99
+
+#How many juveniles are caught during my sample period in total?
+#F(1)*pj*individuals/VMS fishing obs
+juv1 <- sum(fullbe$numjuv, na.rm=T) / 10^6 
+
+#chmjuvsstart = juv(1) - juv(0)
+juv0 <- juv1 - chmjuvsstart 
+
+#Then increase in juvenile catch as a percentage is 
+(chmjuvsstart / juv0) # 0.3241331
+
+
+#Calculate standard error on total change in juvenile catch and in total percentage change
+mycoefs <- toteffect_juv$chmjuv_scaled
+mybigvcov <- diag(toteffect_juv$chmjuvse_scaled^2)
+
+#This includes reallocation, so this is what I want: 
+(changebillionsse <- deltamethod(~ ((x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + 
+                                      x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18 + x19 + x20 + 
+                                      x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
+                                      x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
+                                  1000, mycoefs, mybigvcov, ses=T))
+#2.920087
+
+#Now get SE on total percentage change
+(totperse <- deltamethod(~ ((x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + 
+                              x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18 + x19 + x20 + 
+                              x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
+                              x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
+                          juv0, mycoefs, mybigvcov, ses=T))
+#0.02747452
 
 sessionInfo()
+
