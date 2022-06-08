@@ -153,7 +153,72 @@ for(i in 1:nrow(closed)){
 
 mean(closed$intersectspotcl) #0.8902439
 
-rm(i, row, potcl, inter, rddf, closed)
+rm(i, row, potcl, inter)
+
+#Also calculate area of overlap of each closure with potential closure(s)
+#as a fraction (relative to area of actual closure)
+closed$intersect_area_frac <- 0
+#And time-area overlap
+closed$intersect_time_area_frac <- 0
+
+#Since want areas, project both
+rddf <- st_transform(rddf, st_crs("+proj=laea +lon_0=-76.5"))
+closed <- st_transform(closed, st_crs("+proj=laea +lon_0=-76.5"))
+
+for(i in 1:nrow(closed)){
+  
+  row <- closed[i,]
+  
+  #Filter potential closures to same time period
+  potcl <- filter(rddf, start <= row$end & end >= row$start)
+  
+  inter <- st_intersection(row, potcl)
+  
+  if(nrow(inter) > 0){
+    closed$intersect_area_frac[i] <- as.numeric(sum(st_area(inter)) / st_area(row))
+    
+    #Also calculate time-area overlap
+    inter <- st_intersects(row, potcl)
+    
+    for(j in inter[[1]]){
+      #Intersection area of rect k with each actual closed area j
+      myintersection <- st_intersection(row, potcl[j,]) %>%
+        st_area()
+      #Fraction of rectangle area
+      areafrac <- as.numeric(myintersection) / 
+        st_area(row) %>% as.numeric()
+      if(areafrac>1.000001){ #R has weird numerical sensitivity
+        print(paste0("areafrac > 1, ", i))
+      }
+      #Now calculate time overlap as well. Fraction of overlapping hours
+      recthours <- seq(from=potcl$start[j],to=potcl$end[j]+1,by=3600)
+      acthours <- seq(from=row$start,to=row$end+1,by=3600)
+      timefrac <- sum(acthours %in% recthours) / length(acthours)
+      
+      #Add to treatfrac
+      closed$intersect_time_area_frac[i] <- closed$intersect_time_area_frac[i] + 
+        areafrac*timefrac
+    }
+    
+    
+  }
+  
+}
+
+summary(closed$intersect_area_frac)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.0000  0.2030  0.5001  0.4919  0.7500  1.7001 
+
+summary(closed$intersect_time_area_frac)
+# Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.00000 0.08525 0.28322 0.33213 0.53748 1.00000 
+
+
+rm(i, row, potcl, inter, j, k, myintersection, recthours, timefrac, 
+   acthours, areafrac, inter)
+
+
+
 
 }
 
