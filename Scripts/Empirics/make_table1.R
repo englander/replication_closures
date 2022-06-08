@@ -299,53 +299,34 @@ sessionInfo()
 # Matrix products: default
 # 
 # locale:
-#   [1] LC_COLLATE=English_United States.1252 
-# [2] LC_CTYPE=English_United States.1252   
-# [3] LC_MONETARY=English_United States.1252
-# [4] LC_NUMERIC=C                          
+#   [1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United States.1252   
+# [3] LC_MONETARY=English_United States.1252 LC_NUMERIC=C                          
 # [5] LC_TIME=English_United States.1252    
 # 
 # attached base packages:
-#   [1] stats     graphics  grDevices utils     datasets 
-# [6] methods   base     
+#   [1] stats     graphics  grDevices datasets  utils     methods   base     
 # 
 # other attached packages:
-#   [1] Formula_1.2-4    furrr_0.2.3      future_1.23.0   
-# [4] collapse_1.6.5   rworldmap_1.3-6  sp_1.4-5        
-# [7] sf_1.0-5         readr_2.0.1      readxl_1.3.1    
-# [10] purrr_0.3.4      car_3.0-12       carData_3.0-4   
-# [13] xtable_1.8-4     lubridate_1.7.10 lfe_2.8-7       
-# [16] Matrix_1.3-3     ggplot2_3.3.5    dplyr_1.0.7     
+#   [1] Formula_1.2-4    furrr_0.2.3      future_1.23.0    collapse_1.7.6  
+# [5] readr_2.0.1      readxl_1.3.1     purrr_0.3.4      car_3.0-12      
+# [9] carData_3.0-4    xtable_1.8-4     lubridate_1.7.10 lfe_2.8-7       
+# [13] Matrix_1.3-3     geosphere_1.5-10 dplyr_1.0.7      sf_1.0-5        
+# [17] cowplot_1.1.1    rworldmap_1.3-6  sp_1.4-5         ggplot2_3.3.5   
 # 
 # loaded via a namespace (and not attached):
-#   [1] Rcpp_1.0.7               lattice_0.20-44         
-# [3] listenv_0.8.0            class_7.3-19            
-# [5] zoo_1.8-9                digest_0.6.27           
-# [7] assertthat_0.2.1         utf8_1.2.1              
-# [9] parallelly_1.29.0        R6_2.5.0                
-# [11] cellranger_1.1.0         e1071_1.7-7             
-# [13] spam_2.7-0               pillar_1.6.4            
-# [15] rlang_0.4.11             RcppEigen_0.3.3.9.1     
-# [17] foreign_0.8-81           munsell_0.5.0           
-# [19] proxy_0.4-26             compiler_4.1.0          
-# [21] numDeriv_2016.8-1.1      pkgconfig_2.0.3         
-# [23] globals_0.14.0           tidyselect_1.1.1        
-# [25] tibble_3.1.2             gridExtra_2.3           
-# [27] codetools_0.2-18         fixest_0.10.1           
-# [29] fansi_0.5.0              viridisLite_0.4.0       
-# [31] crayon_1.4.1             tzdb_0.1.2              
-# [33] withr_2.4.2              grid_4.1.0              
-# [35] nlme_3.1-152             gtable_0.3.0            
-# [37] lifecycle_1.0.0          DBI_1.1.1               
-# [39] magrittr_2.0.1           units_0.7-2             
-# [41] scales_1.1.1             KernSmooth_2.23-20      
-# [43] dreamerr_1.2.3           RcppArmadillo_0.10.7.5.0
-# [45] viridis_0.6.1            ellipsis_0.3.2          
-# [47] generics_0.1.0           vctrs_0.3.8             
-# [49] sandwich_3.0-1           tools_4.1.0             
-# [51] glue_1.4.2               maps_3.3.0              
-# [53] hms_1.1.0                fields_12.5             
-# [55] abind_1.4-5              parallel_4.1.0          
-# [57] colorspace_2.0-2         maptools_1.1-1          
-# [59] classInt_0.4-3           dotCall64_1.0-1   
-
+#   [1] viridis_0.6.1      maps_3.3.0         viridisLite_0.4.0  dotCall64_1.0-1   
+# [5] askpass_1.1        renv_0.15.2        cellranger_1.1.0   globals_0.14.0    
+# [9] pillar_1.6.4       lattice_0.20-44    glue_1.4.2         digest_0.6.27     
+# [13] colorspace_2.0-2   sandwich_3.0-1     pkgconfig_2.0.3    listenv_0.8.0     
+# [17] s2_1.0.7           scales_1.1.1       tzdb_0.1.2         tibble_3.1.2      
+# [21] openssl_2.0.0      proxy_0.4-26       generics_0.1.0     usethis_2.1.5     
+# [25] ellipsis_0.3.2     withr_2.4.2        credentials_1.3.2  magrittr_2.0.1    
+# [29] crayon_1.4.1       maptools_1.1-1     fs_1.5.2           fansi_0.5.0       
+# [33] parallelly_1.29.0  foreign_0.8-81     class_7.3-19       tools_4.1.0       
+# [37] hms_1.1.0          lifecycle_1.0.0    munsell_0.5.0      compiler_4.1.0    
+# [41] e1071_1.7-7        rlang_0.4.11       classInt_0.4-3     units_0.7-2       
+# [45] grid_4.1.0         sys_3.4            spam_2.7-0         wk_0.5.0          
+# [49] gtable_0.3.0       codetools_0.2-18   abind_1.4-5        DBI_1.1.1         
+# [53] R6_2.5.0           gridExtra_2.3      zoo_1.8-9          utf8_1.2.1        
+# [57] KernSmooth_2.23-20 parallel_4.1.0     Rcpp_1.0.7         fields_12.5       
+# [61] vctrs_0.3.8        tidyselect_1.1.1 
