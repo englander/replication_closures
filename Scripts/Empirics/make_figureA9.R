@@ -352,7 +352,7 @@ datevec <- c(
 #Parallel apply over datevec
 (myCores <- detectCores())
 
-cl <- makeCluster(myCores - 10)
+cl <- makeCluster(2)
 
 clusterExport(cl, "fullbe")
 clusterExport(cl, "datevec")
@@ -877,6 +877,104 @@ rdf <- do.call("rbind", rdflist)
 
 #What is size of average potential closure now?
 mean(st_area(rdf)/10^6)
+
+#For referee: calculate overlap between actual and these potential closures
+{
+
+  #Crop closures to North-Central
+  bbox <- c(-84, -15.9999, -74, -3.5) 
+  names(bbox) <- names(st_bbox(closed))
+  
+  closed_nc <- st_crop(closed, bbox)
+  
+  #Given row of closed_nc, return 1 if it intersects a potential closure
+  closed_nc$intersectspotcl <- 0
+  
+  for(i in 1:nrow(closed_nc)){
+    
+    row <- closed_nc[i,]
+    
+    #Filter potential closures to same time period
+    potcl <- filter(rdf, start <= row$end & end >= row$start)
+    
+    inter <- st_intersects(row, potcl)
+    
+    if(length(inter[[1]])>0){
+      closed_nc$intersectspotcl[i] <- 1
+    }
+    
+  }
+  
+  mean(closed_nc$intersectspotcl) #0.8878049
+  
+  rm(i, row, potcl, inter)
+  
+  #Also calculate area of overlap of each closure with potential closure(s)
+  #as a fraction (relative to area of actual closure)
+  closed_nc$intersect_area_frac <- 0
+  #And time-area overlap
+  closed_nc$intersect_time_area_frac <- 0
+  
+  #Since want areas, project both
+  rdf_proj <- st_transform(rdf, st_crs("+proj=laea +lon_0=-76.5"))
+  closed_nc <- st_transform(closed_nc, st_crs("+proj=laea +lon_0=-76.5"))
+  
+  for(i in 1:nrow(closed_nc)){
+    
+    row <- closed_nc[i,]
+    
+    #Filter potential closures to same time period
+    potcl <- filter(rdf_proj, start <= row$end & end >= row$start)
+    
+    inter <- st_intersection(row, potcl)
+    
+    if(nrow(inter) > 0){
+      closed_nc$intersect_area_frac[i] <- as.numeric(sum(st_area(inter)) / st_area(row))
+      
+      #Also calculate time-area overlap
+      inter <- st_intersects(row, potcl)
+      
+      for(j in inter[[1]]){
+        #Intersection area of potcl[j,] with actual closed_nc area
+        myintersection <- st_intersection(row, potcl[j,]) %>%
+          st_area()
+        #Fraction of rectangle area
+        areafrac <- as.numeric(myintersection) / 
+          st_area(row) %>% as.numeric()
+        if(areafrac>1.000001){ #R has weird numerical sensitivity
+          print(paste0("areafrac > 1, ", i))
+        }
+        #Now calculate time overlap as well. Fraction of overlapping hours
+        recthours <- seq(from=potcl$start[j],to=potcl$end[j]+1,by=3600)
+        acthours <- seq(from=row$start,to=row$end+1,by=3600)
+        timefrac <- sum(acthours %in% recthours) / length(acthours)
+        
+        #Add to treatfrac
+        closed_nc$intersect_time_area_frac[i] <- closed_nc$intersect_time_area_frac[i] + 
+          areafrac*timefrac
+      }
+      
+      
+    }
+    
+  }
+  
+  summary(closed_nc$intersect_area_frac)
+  # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  # 0.0000  0.3301  0.6691  0.6126  0.9272  1.9751
+  
+  summary(closed_nc$intersect_time_area_frac)
+  # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+  # 0.0000  0.1368  0.3679  0.4002  0.6281  1.1593 
+  
+  
+  rm(i, row, potcl, inter, j, myintersection, recthours, timefrac, 
+     acthours, areafrac, inter, closed_nc, rdf_proj)
+  
+  
+  
+  
+}
 
 #Create bins
 rdf <- rdf %>% mutate(bin = "active_in",bdist=0,tvar=0)
