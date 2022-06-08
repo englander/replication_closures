@@ -10,9 +10,7 @@ library(latex2exp)
 sf::sf_use_s2(FALSE) 
 
 options(scipen=999)
-
-#Peru time
-Sys.setenv(TZ='America/Lima')
+options(lfe.threads=24)
 
 `%not in%` <- function (x, table) is.na(match(x, table, nomatch=NA_integer_))
 
@@ -35,52 +33,165 @@ myThemeStuff <- theme(panel.background = element_blank(),
 )
 
 
+#Peru time
+Sys.setenv(TZ='America/Lima')
 
-#Created in make_synthdf.R
-load("Output/Data/synthdf.Rdata")
+#Created in make_actualclosure_regressioncontrol.R
+load("Output/TempData/actualclosure_regressioncontrol.Rdata")
 
-#Calculate mean outcome in each bin
-meanout <- mutate(synthdf, synthdif = asinhnummjuv_treat - asinhnummjuv_control,
-                  asinhtonsdif = asinhtons_treat - asinhtons_control, 
-                  nummjuvdif = nummjuv_treat - nummjuv_control) %>%
-  group_by(bdist, tvar) %>% 
-  summarise(synthdif = mean(synthdif), 
-            asinhtonsdif = mean(asinhtonsdif), 
-            nummjuvdif = mean(nummjuvdif)) %>% ungroup()
+regdf <- as.data.frame(regdf) %>% dplyr::select(-geometry)
 
-#Function that plots mean outcome for treated and control given tvar
+regdf <- arrange(regdf, tvar, bdist)
+
+#Millions of juveniles
+regdf <- mutate(regdf, nummjuv = numjuv/10^6)
+
+regdf <- mutate(regdf, asinhnummjuv = asinh(nummjuv), 
+               asinhtons = asinh(tons))
+
+regdf$bin <- as.factor(regdf$bin)
+regdf$bin <- relevel(regdf$bin, ref="active_in")
+
+regdf$twoweek_cellid_2p <- as.factor(regdf$twoweek_cellid_2p)
+regdf$twowk <- as.factor(regdf$twowk)
+regdf$cellid_2p <- as.factor(regdf$cellid_2p)
+regdf$startdate <- as.factor(regdf$startdate)
+
+#Drop actual or potential closures that have NA for size distribution
+regdf <- filter(regdf, !is.na(prop12hat))
+
+#How many clusters are there
+unique(regdf$twoweek_cellid_2p) %>% length()
+
+#Given variable, interact it with bin indicators, giving
+interVars <- function(var){
+  
+  mydf <- regdf
+  names(mydf)[names(mydf)==var] <- "myvar"
+  
+  #Want to manually interact var with bin indicator so I can look at each bin's coefficient
+  #relative to 0 (rather than relative to omitted category)
+  bininds <- model.matrix(~bin,data=regdf) %>% as.data.frame()
+  
+  #Drop intercept column and manually create active_in indicator column
+  bininds <- dplyr::select(bininds, -`(Intercept)`)
+  
+  bininds <- bind_cols(
+    dplyr::select(mydf, bin) %>% mutate(binactive_in = if_else(bin=="active_in",1,0)) %>%
+      dplyr::select(-bin),
+    bininds
+  )
+  
+  #Create instrument columns
+  outdf <- lapply(names(bininds), function(x){
+    
+    #Bind bin indicator column with instr
+    mycols <- dplyr::select(bininds, x) %>%
+      bind_cols(dplyr::select(mydf, myvar))
+    
+    #Rename bin indicator column so can refer to it directly
+    names(mycols)[1] <- "mybin"
+    
+    #Create instrument for bin
+    mycols <- mutate(mycols, inter = mybin*myvar) %>%
+      #And only keep this column
+      dplyr::select(inter)
+    
+    #Rename instrument column
+    names(mycols) <- paste0(substr(x,4,nchar(x)),"_",var)
+    
+    mycols
+  })
+  
+  outdf <- do.call("cbind",outdf)
+  
+  return(outdf)
+}
+
+regdf <- bind_cols(
+  regdf,
+  interVars("treatfrac")
+)
+
+#Control group is potential closure-treatment bins with treatfrac = 0
+juvcatch <- felm(
+  as.Formula(paste0(
+    "asinhnummjuv", "~ ", 
+    paste0(grep("_treatfrac",names(regdf),value=T),collapse="+"),
+    " + clustnobs + clusttons + clustarea_km2 + kmtocoast + clusttonsperset + clusttonsperarea + ", 
+    paste0(grep("prop",names(regdf),value=T),collapse="+"),
+    "| bin + twowk:cellid_2p + startdate",
+    " | 0 | twoweek_cellid_2p")),
+  data = filter(regdf, closuretype=="actual" | treatfrac==0))
+
+
+
+#Number of treatment observations included in regression
+filter(regdf, closuretype=="actual") %>% nrow() #14472
+filter(regdf, treatfrac==0) %>% nrow() #24862
+#Total obs in regression
+juvcatch$N #39334
+
+jvtab <- summary(juvcatch)[["coefficients"]]
+
+jvtab <- mutate(as.data.frame(jvtab), bin = rownames(jvtab))
+
+jvtab <- jvtab[grep("treatfrac",jvtab$bin),]
+
+jvtab$bin <- gsub("_treatfrac","",jvtab$bin)
+
+jvtab <- dplyr::select(jvtab, -`t value`, -`Pr(>|t|)`)
+
+jvtab <- rename(jvtab, actualclosure_regressioncontrol = Estimate, se = `Cluster s.e.`)
+
+#Confidence intervals
+jvtab <- mutate(jvtab, actualclosure_regressioncontrol_ub = actualclosure_regressioncontrol + se*qnorm(.975), 
+                actualclosure_regressioncontrol_lb = actualclosure_regressioncontrol - se*qnorm(.975))
+
+#Separate tvar and bdist variables
+jvtab$bdist <- gsub(".*_","",jvtab$bin)
+jvtab$bdist <- as.numeric(jvtab$bdist)
+jvtab$tvar <- gsub("_.*","",jvtab$bin)
+jvtab$bdist[grep("_in",jvtab$bin)] <- 0
+jvtab$tvar[jvtab$tvar=="lead9hours"] <- "lead"
+
 #Function of one event day and dependent variable
 singlePlot <- function(myvar, mytvar, ylab){
   
   #Title
-  if(mytvar==-1){
+  if(mytvar=="lead"){
     tit <- "After announcement, before closure"
-  } else if(mytvar==0){
+  } else if(mytvar=="active"){
     tit <- "Closure period"
-  } else if(mytvar==1){
+  } else if(mytvar=="lag1"){
     tit <- "1 day after"
   } else{
-    tit <- paste0(mytvar, " days after")
+    tit <- paste0(gsub("lag","",mytvar), " days after")
   }
   
   #Rename desired variable
-  usedf <- meanout
+  usedf <- jvtab
   names(usedf)[names(usedf)==myvar] <- "plotvar"
   
-  #Want consistent y range across given variable
-  myymin <- min(usedf$plotvar)
-  myymax <- max(usedf$plotvar)
+  #Rename lb and ub so can refer to directly
+  names(usedf)[names(usedf)==paste0(myvar,"_lb")] <- "lb"
+  names(usedf)[names(usedf)==paste0(myvar,"_ub")] <- "ub"
   
-  if(mytvar==-1|mytvar==2){
-    plot <- ggplot(data=filter(usedf, tvar==mytvar),aes(x=bdist)) + 
-      geom_hline(aes(yintercept=0)) + 
-      geom_point(aes(y=plotvar)) + 
-      scale_x_continuous("",breaks=seq(from=0,to=50,by=10),
-                         labels = c("Inside","10 km","20 km","30 km","40 km","50 km")) +
-      scale_y_continuous(ylab,limits = c(myymin,myymax),
-                         breaks = scales::pretty_breaks(n=10)) + 
-      myThemeStuff + 
-      ggtitle(tit)
+  #Want consistent y range across given variable
+  myymin <- min(usedf$lb)
+  myymax <- max(usedf$ub)
+  
+  if(mytvar=="lead"|mytvar=="lag2"){
+  plot <- ggplot(data=filter(usedf, tvar==mytvar),aes(x=bdist)) + 
+    geom_hline(aes(yintercept=0)) + 
+    geom_point(aes(y=plotvar)) + 
+    scale_x_continuous("",breaks=seq(from=0,to=50,by=10),
+                       labels = c("Inside","10 km","20 km","30 km","40 km","50 km")) +
+    scale_y_continuous(ylab,limits = c(myymin,myymax),
+                       breaks = scales::pretty_breaks(n=10)) + 
+    myThemeStuff + 
+    ggtitle(tit) + 
+    geom_errorbar(data=filter(usedf, tvar==mytvar), aes(x=bdist,ymin=lb,ymax=ub),width=0)
   } else{
     plot <- ggplot(data=filter(usedf, tvar==mytvar),aes(x=bdist)) + 
       geom_hline(aes(yintercept=0)) + 
@@ -90,31 +201,33 @@ singlePlot <- function(myvar, mytvar, ylab){
       scale_y_continuous("",limits = c(myymin,myymax),
                          breaks = scales::pretty_breaks(n=10)) + 
       myThemeStuff + 
-      ggtitle(tit)
+      ggtitle(tit) + 
+      geom_errorbar(data=filter(usedf, tvar==mytvar), aes(x=bdist,ymin=lb,ymax=ub),width=0)
   }
   
   return(plot)
 }
 
 
+
 #Make a 2x3 plot for paper with labeled panels
 paperFig <- function(myvar, ylab){
-  leadplot <- singlePlot(myvar, -1, ylab) + 
+  leadplot <- singlePlot(myvar, "lead", ylab) + 
     labs(tag = "a") + theme(plot.tag.position = c(.05, 1), 
                             plot.margin = unit(c(.05,0.04,.1,0),"in"))
-  activeplot <- singlePlot(myvar, 0, ylab)+ 
+  activeplot <- singlePlot(myvar, "active", ylab)+ 
     labs(tag = "b") + theme(plot.tag.position = c(.05, 1), 
                             plot.margin = unit(c(.05,0.04,.1,0),"in"))
-  lag1plot <- singlePlot(myvar, 1, ylab)+ 
+  lag1plot <- singlePlot(myvar, "lag1", ylab)+ 
     labs(tag = "c") + theme(plot.tag.position = c(.05, 1), 
                             plot.margin = unit(c(.05,0.04,.1,0),"in"))
-  lag2plot <- singlePlot(myvar, 2, ylab)+ 
+  lag2plot <- singlePlot(myvar, "lag2", ylab)+ 
     labs(tag = "d") + theme(plot.tag.position = c(.05, 1), 
                             plot.margin = unit(c(.15,0.04,0,0),"in"))
-  lag3plot <- singlePlot(myvar, 3, ylab)+ 
+  lag3plot <- singlePlot(myvar, "lag3", ylab)+ 
     labs(tag = "e") + theme(plot.tag.position = c(.05, 1), 
                             plot.margin = unit(c(.15,0.04,0,0),"in"))
-  lag4plot <- singlePlot(myvar, 4, ylab)+ 
+  lag4plot <- singlePlot(myvar, "lag4", ylab)+ 
     labs(tag = "f") + theme(plot.tag.position = c(.05, 1), 
                             plot.margin = unit(c(.15,0.04,0,0),"in"))
   
@@ -126,62 +239,130 @@ paperFig <- function(myvar, ylab){
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 
-paperFig("synthdif",
-         "Treatment juvenile catch minus control juvenile catch")
 
-##Calculate total treatment effect
-#Calculate juv1 then calculate juv0. Then scale up both by ratio of nummjuv in data 
+paperFig("actualclosure_regressioncontrol",
+         TeX("$\\beta_{st}$ coefficient and 95% confidence interval (Equation 1)"))
+
+
+#Calculate level effect for text of paper
+jvtab <- rename(jvtab, Estimate = actualclosure_regressioncontrol)
+
+#Calculate juv1 inside closures
+#then calculate juv0. Then scale up both by ratio of nummjuv in closures 
 #to total numjuv.
-toteffect_juv <- group_by(synthdf, tvar, bdist) %>% 
-  summarise(juv1_treat = sum(nummjuv_treat), juv1_control=sum(nummjuv_control)) %>%
-  mutate(juv1 = juv1_treat + juv1_control) %>% 
-  dplyr::select(-juv1_treat, -juv1_control) %>% ungroup() %>% 
-  left_join(dplyr::select(meanout, tvar, bdist, synthdif), by = c('tvar','bdist')) %>% 
-  mutate(juv0 = juv1/(exp(synthdif))) %>% 
+toteffect_juv <- group_by(regdf, bin, tvar, bdist) %>% 
+  summarise(juv1 = sum(nummjuv)) %>%
+  left_join(dplyr::select(jvtab, -tvar, -bdist), by = 'bin') %>% 
+  mutate(juv0 = juv1/(exp(Estimate))) %>% 
   mutate(chmjuv = juv1 - juv0) %>%
   arrange(tvar, bdist) %>% ungroup()
 
-#Re-scale to avoid double-counting
 #Created in 3. correct_be.R
 load("Output/Data/pbe_imp.Rdata")
 
-#Calculate effect of policy, not accounting for TAC reallocation
-#All juveniles caught during data divided by juveniles caught during regression data
-changejuv <- sum(toteffect_juv$chmjuv[toteffect_juv$tvar >= -1]) * (sum(fullbe$numjuv,na.rm=T)/10^6) / (toteffect_juv$juv1[toteffect_juv$tvar >= -1] %>% sum())
+#Total effect, not accounting for reallocation
+changejuv <- (sum(fullbe$numjuv,na.rm=T) / sum(regdf$numjuv, na.rm=T)) * sum(toteffect_juv$chmjuv)
 
-#Account for reallocation in tons caught
-tonscoef <- mean(meanout$asinhtonsdif[meanout$tvar >= -1])
+toteffect_juv <- rename(toteffect_juv, juvcoef = Estimate, juvse = se)
 
-#Tons caught in seasons with binding TAC
+#Calculate delta method standard errors for change in millions of juveniles caught
+library(msm)
+
+toteffect_juv <- mutate(toteffect_juv, chmjuvse = as.numeric(NA), 
+                        chmjuv_scaled = chmjuv * (sum(fullbe$numjuv,na.rm=T) / sum(regdf$numjuv, na.rm=T)),
+                        chmjuvse_scaled = as.numeric(NA), 
+                        juv0se = as.numeric(NA))
+
+scaleconstant <- (sum(fullbe$numjuv,na.rm=T) / sum(regdf$numjuv, na.rm=T))
+
+for(mybin in toteffect_juv$bin){
+  
+  #Filter toteffect_juv to mybin
+  mydf <- filter(toteffect_juv, bin==mybin)
+  
+  #mypj <- mydf$meanpj/100 %>% as.character() %>% as.numeric()
+  myjuv1 <- mydf$juv1
+  myjuvcoef <- mydf$juvcoef
+  myjuvvcov <- mydf$juvse^2
+  
+  #Delta se for juv0. Random variable being transformed is myjuvcoef
+  juv0_delta <- deltamethod(~ (myjuv1 / (exp(x1))), myjuvcoef, myjuvvcov, ses=T)
+  
+  #Plug this value into toteffect_juv
+  toteffect_juv$juv0se[toteffect_juv$bin==mybin] <- juv0_delta
+  
+  #Delta se for chmjuvse. Random variable being transformed is myjuvcoef
+  chmjuv_delta <- deltamethod( ~ myjuv1 - (myjuv1/(exp(x1))),
+                               myjuvcoef,
+                               myjuvvcov,
+                               ses=T
+  )
+  
+  #Plug this value into toteffect_juv
+  toteffect_juv$chmjuvse[toteffect_juv$bin==mybin] <- chmjuv_delta
+  
+  #Delta se for scaled chmjuvse. Random variable being transformed is myjuvcoef
+  chmjuv_scaled_delta <- deltamethod( ~ (myjuv1 - (myjuv1/(exp(x1))))*scaleconstant,
+                                      myjuvcoef,
+                                      myjuvvcov,
+                                      ses=T
+  )
+  
+  #Plug this value into toteffect_juv
+  toteffect_juv$chmjuvse_scaled[toteffect_juv$bin==mybin] <- chmjuv_scaled_delta
+  
+}
+
+
+
+
+#Closures cannot increases tons caught because of TAC, so account for this reallocation
+#by estimating how policy affects tons caught
+tonscaught <- felm(
+  as.Formula(paste0(
+    "asinhtons", "~ ", 
+    "treatfrac ",
+    " + clustnobs + clusttons + clustarea_km2 + kmtocoast + clusttonsperset + clusttonsperarea + ", 
+    paste0(grep("prop",names(regdf),value=T),collapse="+"),
+    "| bin + twowk:cellid_2p + startdate",
+    " | 0 | twoweek_cellid_2p")),
+  data =regdf)
+
+tonscoef <- summary(tonscaught)[["coefficients"]]["treatfrac","Estimate"]
+
+#Don't reallocate tons from 2017 second season or 2019 second season because they were both 
+#shut down well before TAC was reached. 
+
+#Tons caught in state of world I observe in seasons where TAC hit
 tons1 <- sum(fullbe$betons[fullbe$Temporada!="2017-II" & fullbe$Temporada!="2019-II"])
 
 #Change in tons because of policy
-(ctons <- tons1 - tons1/exp(tonscoef))
+ctons <- tons1 - tons1/exp(tonscoef) 
 
 #Average pj outside of treatment window
-(avgpjoutside <- filter(fullbe, lead_0==0 & lead_10==0 & lead_20==0 & lead_30==0 & lead_40==0 & lead_50==0 & 
-                          active_0==0 & active_10==0 & active_20==0 & active_30==0 & active_40==0 & active_50==0 & 
-                          lag1_0==0 & lag1_10==0 & lag1_20==0 & lag1_30==0 & lag1_40==0 & lag1_50==0 & 
-                          lag2_0==0 & lag2_10==0 & lag2_20==0 & lag2_30==0 & lag2_40==0 & lag2_50==0 & 
-                          lag3_0==0 & lag3_10==0 & lag3_20==0 & lag3_30==0 & lag3_40==0 & lag3_50==0 & 
-                          lag4_0==0 & lag4_10==0 & lag4_20==0 & lag4_30==0 & lag4_40==0 & lag4_50==0 & 
-                          !is.na(numindivids) & !is.na(bepjhat) & Temporada!="2017-II" & Temporada!="2019-II") %>%
-    #Weight by number of individuals
-    mutate(pjweighted = bepjhat*numindivids) %>%  
-    summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100) #0.09045413
+avgpjoutside <- filter(fullbe, lead_0==0 & lead_10==0 & lead_20==0 & lead_30==0 & lead_40==0 & lead_50==0 & 
+                         active_0==0 & active_10==0 & active_20==0 & active_30==0 & active_40==0 & active_50==0 & 
+                         lag1_0==0 & lag1_10==0 & lag1_20==0 & lag1_30==0 & lag1_40==0 & lag1_50==0 & 
+                         lag2_0==0 & lag2_10==0 & lag2_20==0 & lag2_30==0 & lag2_40==0 & lag2_50==0 & 
+                         lag3_0==0 & lag3_10==0 & lag3_20==0 & lag3_30==0 & lag3_40==0 & lag3_50==0 & 
+                         lag4_0==0 & lag4_10==0 & lag4_20==0 & lag4_30==0 & lag4_40==0 & lag4_50==0 & 
+                         !is.na(numindivids) & !is.na(bepjhat) & Temporada!="2017-II" & Temporada!="2019-II") %>%
+  #Weight by tons
+  mutate(pjweighted = bepjhat*numindivids) %>%  
+  summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100
 
 
 #Avg weight of individual caught outside of treatment window
-(avgweightoutside <- filter(fullbe, lead_0==0 & lead_10==0 & lead_20==0 & lead_30==0 & lead_40==0 & lead_50==0 & 
-                              active_0==0 & active_10==0 & active_20==0 & active_30==0 & active_40==0 & active_50==0 & 
-                              lag1_0==0 & lag1_10==0 & lag1_20==0 & lag1_30==0 & lag1_40==0 & lag1_50==0 & 
-                              lag2_0==0 & lag2_10==0 & lag2_20==0 & lag2_30==0 & lag2_40==0 & lag2_50==0 & 
-                              lag3_0==0 & lag3_10==0 & lag3_20==0 & lag3_30==0 & lag3_40==0 & lag3_50==0 & 
-                              lag4_0==0 & lag4_10==0 & lag4_20==0 & lag4_30==0 & lag4_40==0 & lag4_50==0 & 
-                              !is.na(numindivids) & !is.na(avgweightg) & Temporada!="2017-II" & Temporada!="2019-II") %>%
-    #Weight by number of individuals
-    mutate(weightweighted = avgweightg*numindivids) %>% 
-    summarise(avgweightg = sum(weightweighted)/sum(numindivids)) %>% as.numeric())
+avgweightoutside <- filter(fullbe, lead_0==0 & lead_10==0 & lead_20==0 & lead_30==0 & lead_40==0 & lead_50==0 & 
+                             active_0==0 & active_10==0 & active_20==0 & active_30==0 & active_40==0 & active_50==0 & 
+                             lag1_0==0 & lag1_10==0 & lag1_20==0 & lag1_30==0 & lag1_40==0 & lag1_50==0 & 
+                             lag2_0==0 & lag2_10==0 & lag2_20==0 & lag2_30==0 & lag2_40==0 & lag2_50==0 & 
+                             lag3_0==0 & lag3_10==0 & lag3_20==0 & lag3_30==0 & lag3_40==0 & lag3_50==0 & 
+                             lag4_0==0 & lag4_10==0 & lag4_20==0 & lag4_30==0 & lag4_40==0 & lag4_50==0 & 
+                             !is.na(numindivids) & !is.na(avgweightg) & Temporada!="2017-II" & Temporada!="2019-II") %>%
+  #Weight by tons
+  mutate(weightweighted = avgweightg*numindivids) %>% 
+  summarise(avgweightg = sum(weightweighted)/sum(numindivids)) %>% as.numeric()
 
 
 #Decrease in individuals caught outside of treatment window in millions
@@ -191,7 +372,7 @@ chindividsoutside <- -ctons/avgweightoutside
 chjuvsoutside <- chindividsoutside*avgpjoutside
 
 #Now can calculate change in juvenile catch due to policy, accounting for reallocation
-(chmjuvsstart <- changejuv + chjuvsoutside) #40106.27
+(chmjuvsstart <- changejuv + chjuvsoutside) #34449.99
 
 #How many juveniles are caught during my sample period in total?
 #F(1)*pj*individuals/VMS fishing obs
@@ -201,6 +382,28 @@ juv1 <- sum(fullbe$numjuv, na.rm=T) / 10^6
 juv0 <- juv1 - chmjuvsstart 
 
 #Then increase in juvenile catch as a percentage is 
-chmjuvsstart / juv0 #0.398563
+(chmjuvsstart / juv0) # 0.3241331
+
+
+#Calculate standard error on total change in juvenile catch and in total percentage change
+mycoefs <- toteffect_juv$chmjuv_scaled
+mybigvcov <- diag(toteffect_juv$chmjuvse_scaled^2)
+
+#This includes reallocation, so this is what I want: 
+(changebillionsse <- deltamethod(~ ((x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + 
+                                      x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18 + x19 + x20 + 
+                                      x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
+                                      x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
+                                  1000, mycoefs, mybigvcov, ses=T))
+#2.920087
+
+#Now get SE on total percentage change
+(totperse <- deltamethod(~ ((x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + 
+                              x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18 + x19 + x20 + 
+                              x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
+                              x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
+                          juv0, mycoefs, mybigvcov, ses=T))
+#0.02747452
 
 sessionInfo()
+
