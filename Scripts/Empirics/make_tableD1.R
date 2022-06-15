@@ -77,7 +77,7 @@ filter(owndf, fleettype!='singleton' & casco=="ACERO NAVAL") %>% nrow() /
 filter(owndf, fleettype!='singleton' & casco=="MADERA") %>% nrow() / 
   filter(owndf, casco=="MADERA") %>% nrow()
 
-#Make Table B1
+#Make Table D1
 tab <- matrix(NA, ncol=5,nrow=13)
 
 tab[1,] <- c("","(1)","(2)","(3)","(4)")
@@ -159,9 +159,9 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
           "\\midrule \\multicolumn{5}{l}{A. Average tons landed per season} \\\\ ",
           "\\midrule \\multicolumn{5}{l}{B. Average number of active vessels per season} \\\\ ",
           "\\midrule \\multicolumn{5}{l}{C. Vessel length (m)} \\\\ ",
-          "\\bottomrule \\multicolumn{5}{l}{\\multirow{2}{14cm}{Large-firm vessels are vessels that belong to one of the seven largest firms, which each own at least 19 vessels. Medium-firm vessels belong to firms that own 2 to 10 vessels. Singleton vessels belong to a firm that owns only one vessel. Data is for the North-Central zone only. Landings data is used to calculate the number of active vessels each season. Landings and vessel length data are from PRODUCE.}} \\\\\\\\\\\\\\\\\\\\\\\\\\\\ "
+          "\\bottomrule  "
           )),
-      type = "latex",file="Output/Tables/tableB1.tex")
+      type = "latex",file="Output/Tables/tableD1.tex")
 
 #What percent of landings do each fleettype account for?
 sum(owndf$tons[owndf$fleettype=="large"]) / sum(owndf$tons)

@@ -1,3 +1,6 @@
+#Then create Figure C1. A two by two plot of a) uncorrected length distribution,
+#b) corrected length distribution, 
+#c) distribution of reported and d) corrected percentage juvenile values
 options(scipen=999)
 
 rm(list=ls())
