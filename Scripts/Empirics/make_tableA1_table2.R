@@ -161,6 +161,35 @@ formSE <- function(reg, coef, dig){
   return(roundse)
 }
 
+#Given number and number of digits, round and add zero after decimal if necessary
+formNum <- function(num, dig){
+  
+  #Round
+  roundnum <- round(num, dig) %>% as.character()
+  
+  #If rounded to integer, need to add "." to end
+  if(length(grep("\\.",roundnum))==0){
+    roundnum <- paste0(roundnum, ".")
+  }
+  
+  #Add an extra zero beyond the decimal point if needed to get same length
+  #Do num first
+  roundnum <- sapply(seq_len(length(roundnum)), function(x){
+    if(gsub(".*\\.","",roundnum[x]) %>% nchar() < dig){
+      #Needed length
+      zerosneeded <- dig - gsub(".*\\.","",roundnum[x]) %>% nchar()
+      roundnum[x] <- paste0(roundnum[x],paste0(rep(0,zerosneeded),collapse=""))
+    } else{
+      roundnum[x]
+    }
+  })
+  
+  #Add commas if necessary
+  roundnum <- prettyNum(roundnum, ",")
+  
+  return(roundnum)
+}
+
 #Table of correlation between outcome and covariate
 covtab <- matrix(NA, nrow=9, ncol=5)
 
@@ -235,33 +264,39 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
         command = c(
           paste0("\\toprule & \\multicolumn{4}{c}{Dependent variable: asinh(juvenile catch)} \\\\ "),
           "\\midrule ",
-          "\\bottomrule \\multicolumn{5}{l}{\\multirow{2}{10.4cm}{All regressions have 34,164 observations. Dependent variable is inverse hyperbolic sine of millions of juveniles caught in a potential closure-treatment bin. Standard errors clustered at level of two-week-of-sample by two-degree grid cell.}} \\\\\\\\\\\\\\\\\\\\\\\\ "
-        )),
+          "\\bottomrule "
+          )),
       type = "latex",file="Output/Tables/tableA1.tex")
 
 
 
 
 #Now make balance on observables table
-baltab <- matrix(NA,ncol=5,nrow=4)
+baltab <- matrix(NA,ncol=5,nrow=5)
 
 baltab[1,] <- c("","DistToCoast","TonsPerSet","TonsPerArea","FittedVals")
 
 baltab[2,] <- c("","(1)","(2)","(3)","(4)")
 
-baltab[3,] <- c("Treatment",
+baltab[3,] <- c("Treatment fraction",
                 formCoef(cov_treatfrac("kmtocoast"),"treatfrac",3),
                 formCoef(cov_treatfrac("clusttonsperset"),"treatfrac",3),
                 formCoef(cov_treatfrac("clusttonsperarea"),"treatfrac",3),
                 formCoef(cov_treatfrac("fitted"),"treatfrac",3)
 )
 
-baltab[4,] <- c("fraction",
+baltab[4,] <- c("",
                 formSE(cov_treatfrac("kmtocoast"),"treatfrac",3),
                 formSE(cov_treatfrac("clusttonsperset"),"treatfrac",3),
                 formSE(cov_treatfrac("clusttonsperarea"),"treatfrac",3),
                 formSE(cov_treatfrac("fitted"),"treatfrac",3)
 )
+
+baltab[5,] <- c("Mean dep. var.", 
+                formNum(mean(rddf$kmtocoast), 3),
+                formNum(mean(rddf$clusttonsperset), 3),
+                formNum(mean(rddf$clusttonsperarea), 3),
+                formNum(mean(rddf$fitted), 3))
 
 myxtable <- xtable(baltab)
 
@@ -275,11 +310,12 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
       include.colnames=F,include.rownames=F,table.placement="tb",
       hline.after=NULL,
       add.to.row=list(
-        pos = list(0,2,nrow(baltab)),
+        pos = list(0,2,nrow(baltab) - 1, nrow(baltab)),
         command = c(
           paste0("\\toprule  "),
           "\\midrule ",
-          "\\bottomrule \\multicolumn{5}{l}{\\multirow{2}{12.4cm}{All regressions have 34,164 observations and control for two-week-of-sample by two-degree-grid-cell fixed effects, day-of-sample fixed effects, and potential closure-level length distribution. Standard errors clustered at level of two-week-of-sample by two-degree grid cell.}} \\\\\\\\\\\\\\\\\\\\\\\\ "
+          "\\midrule ",
+          "\\bottomrule  "
         )),
       type = "latex",file="Output/Tables/table2.tex")
 
