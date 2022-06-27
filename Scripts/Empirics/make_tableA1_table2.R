@@ -237,7 +237,7 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
           "\\midrule ",
           "\\bottomrule \\multicolumn{5}{l}{\\multirow{2}{10.4cm}{All regressions have 34,164 observations. Dependent variable is inverse hyperbolic sine of millions of juveniles caught in a potential closure-treatment bin. Standard errors clustered at level of two-week-of-sample by two-degree grid cell.}} \\\\\\\\\\\\\\\\\\\\\\\\ "
         )),
-      type = "latex",file="Output/Tables/tableA2.tex")
+      type = "latex",file="Output/Tables/tableA1.tex")
 
 
 
@@ -281,6 +281,6 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
           "\\midrule ",
           "\\bottomrule \\multicolumn{5}{l}{\\multirow{2}{12.4cm}{All regressions have 34,164 observations and control for two-week-of-sample by two-degree-grid-cell fixed effects, day-of-sample fixed effects, and potential closure-level length distribution. Standard errors clustered at level of two-week-of-sample by two-degree grid cell.}} \\\\\\\\\\\\\\\\\\\\\\\\ "
         )),
-      type = "latex",file="Output/Tables/tableA3.tex")
+      type = "latex",file="Output/Tables/table2.tex")
 
 sessionInfo()

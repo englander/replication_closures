@@ -313,7 +313,7 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
           "\\midrule Fixed effects & & X & & X\\\\ ",
           "\\bottomrule "
           )),
-      type = "latex",file="Output/Tables/table2.tex")
+      type = "latex",file="Output/Tables/table4.tex")
 
 
 sessionInfo()
