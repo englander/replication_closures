@@ -5,7 +5,7 @@ library(rworldmap); library(sf); library(lwgeom)
 library(rgdal); library(geosphere); library(sp)
 library(purrr); library(lubridate); library(glmnet)
 library(lfe); library(Formula); library(smoothr)
-library(parallel)
+library(furrr); library(tidyr)
 
 #Turn off spherical geometry since I wrote these scripts before sf v1
 sf::sf_use_s2(FALSE) 
@@ -169,28 +169,14 @@ closedControls <- function(rowind){
 }
 
 #Parallel apply over closures
-(myCores <- detectCores())
+plan(multisession, workers = 4)
 
-cl <- makeCluster(10)
-
-clusterExport(cl, "fullbe")
-clusterExport(cl, "closed")
-clusterExport(cl, "lengthzero")
-clusterExport(cl, "closedControls")
-clusterEvalQ(cl, library(dplyr))
-clusterEvalQ(cl, library(sf))
-clusterEvalQ(cl, library(lubridate))
-
-closedlist <- parLapply(cl = cl,
-                     1:nrow(closed),
+closedlist <- future_map(1:nrow(closed),
                      function(x){
                        
                        closedControls(x)
                        
                      })
-
-stopCluster(cl)
-rm(cl, myCores)
 
 closedlist <- bind_rows(closedlist)
 
@@ -198,6 +184,20 @@ closedlist <- bind_rows(closedlist)
 closed <- left_join(closed, closedlist, by = 'closeid')
 
 rm(closedlist, lengthzero)
+
+#What is the percentage difference in tons per set 
+#comparing above-median to below-median closures?
+perdif <- as.data.frame(closed) %>% dplyr::select(-geometry) %>% 
+  mutate(medsize = median(clustarea_km2)) %>% 
+  mutate(abovemed = if_else(clustarea_km2 > medsize, 1, 0)) %>% 
+  group_by(abovemed) %>% 
+  summarise(clusttonsperset = mean(clusttonsperset)) %>% 
+  t()
+  
+#16% higher
+(perdif[,2] - perdif[,1]) / perdif[,1]
+
+rm(perdif)
 
 ##Create closure treatment bins
 closed <- mutate(closed, bin = "active_in",bdist=0,tvar=0)
@@ -248,46 +248,33 @@ applyBufFun_closed <- function(bmin, bmax){
     BufFun_closed(x, bmin, bmax)
   })
   
-  out <- do.call("rbind",out)
+  out <- bind_rows(out)
   
   return(out)
 }
 
 #Apply over all buffers
-(myCores <- detectCores())
+plan(multisession, workers = 4)
 
-cl <- makeCluster(10)
-
-clusterExport(cl, "closed")
-clusterExport(cl, "BufFun_closed")
-clusterExport(cl, "applyBufFun_closed")
-clusterEvalQ(cl, library(dplyr))
-clusterEvalQ(cl, library(sf))
-clusterEvalQ(cl, library(lwgeom))
-
-cbufs <- parLapply(cl=cl,
-                   list(
+cbufs <- future_map(list(
                      c(0,10),c(10,20),c(20,30),c(30,40),c(40,50)                   
                    ), function(x){
                      applyBufFun_closed(bmin=x[[1]],bmax=x[[2]])
                    })
 
-stopCluster(cl)
-rm(cl, myCores)
-
-cbufs <- do.call("rbind",cbufs)
+cbufs <- bind_rows(cbufs)
 
 names(cbufs)[names(cbufs)!="geometry"] <- names(closed)[names(closed)!="geometry"]
 
-closed <- rbind(closed, cbufs)
+closed <- bind_rows(closed, cbufs)
 
 rm(cbufs)
 
 #Duplicate closures for leads and lags
-closed <- rbind(
+closed <- bind_rows(
   closed,
   #Preperiod is 9 hours before if begins at midnight; 12 hours before if begins at 6 am
-  rbind(
+  bind_rows(
     filter(closed, six==0) %>% mutate(end=start-1) %>% 
       mutate(start=start-9*3600,tvar=-1),
     filter(closed, six==1) %>% mutate(end=start-1) %>% 
@@ -350,28 +337,15 @@ outcomesFun <- function(rowind){
 }
 
 #Apply over all bins
-(myCores <- detectCores())
-
-cl <- makeCluster(12)
-
-clusterExport(cl, "closed")
-clusterExport(cl, "fullbe")
-clusterExport(cl, "outcomesFun")
-clusterEvalQ(cl, library(dplyr))
-clusterEvalQ(cl, library(sf))
-clusterEvalQ(cl, library(lubridate))
+plan(multisession, workers = 4)
 
 #Apply over rows of closed
-myoutcomes <- parLapply(cl = cl,
-                        1:nrow(closed),
+myoutcomes <- future_map(1:nrow(closed),
                         function(x){
                           
                           outcomesFun(x)
                           
                         })
-
-stopCluster(cl)
-rm(cl, myCores)
 
 myoutcomes <- bind_rows(myoutcomes)
 
@@ -471,9 +445,10 @@ rddf <- mutate(rddf, clusttonsperset = clusttons / clustnobs,
 closed <- mutate(closed, numadults = numindivids - numjuv)
 
 #Row bind
-regdf <- rbind(
+regdf <- bind_rows(
   mutate(closed, closuretype = "actual"),
-  mutate(rddf, closuretype='potential')
+  mutate(rddf, closuretype='potential', 
+         id = as.character(id))
 )
 
 #Save df
