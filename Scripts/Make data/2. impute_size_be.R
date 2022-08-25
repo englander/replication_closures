@@ -35,10 +35,65 @@ myThemeStuff <- theme(panel.background = element_rect(fill = NA),
 #Peru time
 Sys.setenv(TZ='America/Lima')
 
-#Load SNP Bitacora Electronica data cleaned in make_bedat_snponly*.R
-load("Data/bedat_snp.Rdata")
+#Load SNP Bitacora Electronica data
+sbe <- read_csv("Data/bedat_snp.csv")
 
-sbe <- bedat; rm(bedat)
+#Given length in cm, return weight in g
+#Use values from IMARPE (2019)
+lengthweight <- function(length){
+  #length in cm; weight in g
+  weight <- .0036*length^3.238
+  return(weight)
+}
+
+#Size bins
+sizebins <- c(names(sbe)[nchar(names(sbe)) %in% c(1,2)],
+              grep("p5",names(sbe),value=T)
+)
+
+#Don't want ID column
+sizebins <- sizebins[-grep("ID",sizebins)]
+
+#Multiply proportion of individuals in each length bin by weight in grams 
+#of individuals of that length
+weightpropcols <- map(sizebins, function(x){
+  
+  mycol <- dplyr::select(sbe, x) 
+  
+  #Rename so can refer to directly
+  names(mycol) <- "mybin"
+  
+  #If bin contains p, replace with "."
+  if(grep("p", x) %>% length() > 0){
+    
+    binchar <- gsub("p","\\.",x)
+    lengthbin <- as.numeric(binchar)
+    
+  }else{
+    lengthbin <- as.numeric(x) 
+  }
+  
+  mycol <- mutate(mycol, weightprop = mybin * lengthweight(lengthbin)) %>% 
+    dplyr::select(weightprop)
+  
+  names(mycol) <- paste0("weightprop_", x)
+  
+  mycol
+})
+
+weightpropcols <- bind_cols(weightpropcols)
+
+#Calculate average weight in grams of each row and add as new column to sbe
+sbe <- mutate(sbe, avgweightg = apply(weightpropcols, 1, sum)) %>% 
+  #Calculate number of individuals caught by each set
+  mutate(numindivids = (tons*10^6)/avgweightg) %>%
+    #Number of juveniles
+    mutate(numjuv = numindivids*perjuv/100) %>%
+    #Number of adults
+    mutate(numadults = (numindivids*(100-perjuv))/100)
+
+#Clean up
+rm(weightpropcols, sizebins)
 
 #Created in 1. match_be_landings.R
 load("Output/Data/matched_be_landings_belevel.Rdata")
@@ -287,13 +342,6 @@ for(i in which(is.na(matched$spj) & !is.na(matched$`12`))){
 
   #And assign stons equal to betons for these rows
   matched$stons[i] <- matched$betons[i]
-}
-
-#Use values from IMARPE (2019)
-lengthweight <- function(length){
-  #length in cm; weight in g
-  weight <- .0036*length^3.238
-  return(weight)
 }
 
 #For calculating weight of individuals in subsequent function
