@@ -47,7 +47,7 @@ rddf <- dplyr::select(rddf, -tons, -numindivids, -numjuv, -nobs, -sdtons, -numad
 load("Output/Data/pbe_imp.Rdata")
 
 #Load vessel information data
-load("Data/owndf.Rdata")
+owndf <- read_csv("Data/owndf.csv")
 
 #Join length of vessel onto fullbe
 fullbe <- left_join(fullbe, 

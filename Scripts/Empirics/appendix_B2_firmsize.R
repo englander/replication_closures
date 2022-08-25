@@ -6,6 +6,7 @@ library(purrr); library(lubridate)
 library(lfe); library(Formula)
 library(parallel); library(tidyr); library(cowplot)
 library(viridis); library(latex2exp)
+library(readr)
 
 #Turn off spherical geometry since I wrote these scripts before sf v1
 sf::sf_use_s2(FALSE) 
@@ -47,7 +48,7 @@ rddf <- dplyr::select(rddf, -tons, -numindivids, -numjuv, -nobs, -sdtons, -numad
 load("Output/Data/pbe_imp.Rdata")
 
 #Load vessel ownership information
-load("Data/owndf.Rdata")
+owndf <- read_csv("Data/owndf.csv")
 
 #Large fleets are the top7 firms
 owndf <- mutate(owndf, fleettype = as.character(NA))

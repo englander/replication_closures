@@ -8,7 +8,7 @@ library(readxl)
 options(scipen=999)
 
 #Load ownership information
-load("Data/owndf.Rdata")
+owndf <- read_csv("Data/owndf.csv")
 
 #Large fleets are the top7 firms
 owndf <- mutate(owndf, fleettype = as.character(NA))

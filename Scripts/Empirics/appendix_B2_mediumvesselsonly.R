@@ -47,7 +47,7 @@ rddf <- dplyr::select(rddf, -tons, -numindivids, -numjuv, -nobs, -sdtons, -numad
 load("Output/Data/pbe_imp.Rdata")
 
 #Load vessel information
-load("Data/owndf.Rdata")
+owndf <- read_csv("Data/owndf.csv")
 
 #Medium fleets are not top7 firm and have more than one vessel
 owndf$fleettype[owndf$Armador %not in% c("TECNOLOGICA DE ALIMENTOS S.A.","PESQUERA DIAMANTE S.A.","CORPORACION PESQUERA INCA S.A.C.",

@@ -53,7 +53,7 @@ be$lon <- -be$lon
 be$lat <- -be$lat
 
 #Load ownership information
-load("Data/owndf.Rdata")
+owndf <- read_csv("Data/owndf.csv")
 
 #Keep columns of interest for this exercise
 be <- dplyr::select(be, Matricula, Temporada, Zona, FechaInicioCala, lon, lat)
