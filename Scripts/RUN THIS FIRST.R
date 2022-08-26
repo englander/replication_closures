@@ -1,9 +1,7 @@
 #This script ensures you are using the same package version that I did
-install.packages('devtools')
 
-devtools::install_packages("renv", version = "0.15.2", 
-                           repos = "http://cran.us.r-project.org")
-
-renv::activate()
-
+#If using Windows OS, set download method
+if(Sys.info()["sysname"] == "Windows"){
+  Sys.setenv(RENV_DOWNLOAD_METHOD = "wininet")
+}
 renv::restore()
