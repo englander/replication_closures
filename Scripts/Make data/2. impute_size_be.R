@@ -6,7 +6,7 @@ rm(list=ls())
 
 library(dplyr); library(readxl); library(ggplot2)
 library(sf); library(purrr); library(lubridate)
-library(parallel); library(tidyr)
+library(parallel); library(tidyr); library(readr)
 
 #Turn off spherical geometry since I wrote these scripts before sf v1
 sf::sf_use_s2(FALSE) 
@@ -302,7 +302,7 @@ matchFun <- function(rowind){
 
 (myCores <- detectCores())
 
-cl <- makeCluster(18)
+cl <- makeCluster(14)
 
 clusterSetRNGStream(cl, 20200615)
 
@@ -391,7 +391,7 @@ calcIndivids <- function(rowind){
 #Apply over rows
 (myCores <- detectCores())
 
-cl <- makeCluster(18)
+cl <- makeCluster(14)
 
 clusterExport(cl, "matched")
 clusterExport(cl, "sizedf")
@@ -565,7 +565,7 @@ shiftSNP <- function(rowind){
 #Apply over rows of matched observations
 (myCores <- detectCores())
 
-cl <- makeCluster(18)
+cl <- makeCluster(14)
 
 clusterExport(cl, "matched")
 clusterExport(cl, "sizedf")
@@ -902,7 +902,7 @@ sizedf$lengthname <- as.character(sizedf$lengthname)
 #Parallel apply over datevec
 (myCores <- detectCores())
 
-cl <- makeCluster(20)
+cl <- makeCluster(14)
 
 clusterExport(cl, "empdf")
 clusterExport(cl, "matched")
@@ -940,5 +940,3 @@ nrow(matched)==nrow(fullbe)
 
 save(fullbe, file = "Output/Data/pbe_imp_uncorrected.Rdata")
 #That's enough for one script! Next script is 3. correct_be.R
-
-sessionInfo()
