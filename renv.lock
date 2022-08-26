@@ -33,6 +33,14 @@
       "Hash": "8dcfa99b14c296bc9f1fd64d52fd3ce7",
       "Requirements": []
     },
+    "LowRankQP": {
+      "Package": "LowRankQP",
+      "Version": "1.0.5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "296be54a9832385c1b2f2a3f43824092",
+      "Requirements": []
+    },
     "MASS": {
       "Package": "MASS",
       "Version": "7.3-54",
@@ -135,13 +143,15 @@
     },
     "Synth": {
       "Package": "Synth",
-      "Version": "1.1-5",
+      "Version": "1.1-6",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "bd6eb9b3b5b37e14f7cec093a48312bd",
+      "Hash": "8310c56b3009190b9ab5f7358bf4d481",
       "Requirements": [
+        "LowRankQP",
         "kernlab",
-        "optimx"
+        "optimx",
+        "rgenoud"
       ]
     },
     "abind": {
@@ -1845,6 +1855,14 @@
       "Requirements": [
         "sp"
       ]
+    },
+    "rgenoud": {
+      "Package": "rgenoud",
+      "Version": "5.9-0.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "743092f662f4b45d4a61e6c333ddd117",
+      "Requirements": []
     },
     "rgeos": {
       "Package": "rgeos",
