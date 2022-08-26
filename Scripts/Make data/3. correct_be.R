@@ -38,7 +38,7 @@ myThemeStuff <- theme(panel.background = element_rect(fill = NA),
 #Peru time
 Sys.setenv(TZ='America/Lima')
 
-#Created in impute_size_be*.R
+#Created in 2. impute_size_be*.R
 load("Output/Data/pbe_imp_uncorrected.Rdata")
 
 #Calculate average be at landid level, weighted by number of individuals, and join onto fullbe
@@ -154,7 +154,7 @@ fullbe$bepjhat[is.na(fullbe$bepjhat) & fullbe$groupbepj==0 & fullbe$grouplandpj>
 fullbe$bepjhat[is.na(fullbe$bepjhat) & fullbe$groupbepj>=0 & fullbe$grouplandpj==0 & 
                     !is.na(fullbe$grouplandpj) & !is.na(fullbe$groupbepj)] <- 0
 
-#For remaining 148 observations with missing bepjhat, just use bepj
+#For remaining few observations with missing bepjhat, just use bepj
 fullbe$bepjhat[is.na(fullbe$bepjhat)] <- fullbe$bepj[is.na(fullbe$bepjhat)]
 
 #Several hundred observations > 100 (because of multiplying by ratio above). 
@@ -364,7 +364,7 @@ shiftDist <- function(rowind){
 #Parallel apply over datevec
 (myCores <- detectCores())
 
-cl <- makeCluster(22)
+cl <- makeCluster(14)
 
 clusterExport(cl, "fullbe")
 clusterExport(cl, "sizedf")
@@ -473,7 +473,7 @@ fullbe <- filter(fullbe, lat >  -16) #(this only drops an additional 6 observati
   #Apply over all buffers
   (myCores <- detectCores())
   
-  cl <- makeCluster(myCores - 10)
+  cl <- makeCluster(14)
   
   clusterExport(cl, "closed")
   clusterExport(cl, "BufFun_closed")
@@ -492,16 +492,16 @@ fullbe <- filter(fullbe, lat >  -16) #(this only drops an additional 6 observati
   stopCluster(cl)
   rm(cl, myCores)
   
-  cbufs <- do.call("rbind",cbufs)
+  cbufs <- bind_rows(cbufs)
   
   names(cbufs)[names(cbufs)!="geometry"] <- names(closed)[names(closed)!="geometry"]
   
-  closed <- rbind(closed, cbufs)
+  closed <- bind_rows(closed, cbufs)
   
   rm(cbufs)
   
   #Duplicate rectangles for leads and lags
-  closed <- rbind(
+  closed <- bind_rows(
     closed,
     #Preperiod is 9 hours before if begins at midnight; 12 hours before if begins at 6 am
     rbind(
@@ -586,7 +586,7 @@ rm(mp)
 
 (myCores <- detectCores())
 
-cl <- makeCluster(24)
+cl <- makeCluster(14)
 
 clusterExport(cl, "fullbe")
 clusterExport(cl, "closed")
@@ -614,19 +614,19 @@ save(fullbe, file = "Output/Data/pbe_imp.Rdata")
 
 #What % of tons landed do SNP vessels represent?
 filter(fullbe, !is.na(stons)) %>% 
-  summarise(sum(betons)) %>% as.matrix() %>% as.numeric() / sum(fullbe$betons) #0.5645073
+  summarise(sum(betons)) %>% as.matrix() %>% as.numeric() / sum(fullbe$betons) #0.5643719
 
 #Calculate weighted average percentage juvenile in both datasets
 filter(fullbe, !is.na(bepj) & !is.na(numindivids)) %>% 
   mutate(weightpj = bepj*numindivids) %>% 
-  summarise(sum(weightpj) / sum(numindivids)) #11.0004
+  summarise(sum(weightpj) / sum(numindivids)) #11.00018
 
 filter(fullbe, !is.na(landpj) & !is.na(numindivids)) %>% 
   mutate(weightpj = landpj*numindivids) %>% 
-  summarise(sum(weightpj) / sum(numindivids))  #18.34531
+  summarise(sum(weightpj) / sum(numindivids))  #18.34468
 
 #Percentage difference 
-(11.0004 - 18.34531) / 18.34531
+(11.00018 - 18.34468) / 18.34468
 
 #Calculate tons reported by sets matched to landing events
 #and compare the two 
@@ -674,9 +674,7 @@ hassets <- filter(fullbe, !is.na(`12`)) %>% distinct(twoweek_cellid_2p)
 nonsnp <- filter(fullbe, is.na(`12`))
 
 filter(nonsnp, twoweek_cellid_2p %in% hassets$twoweek_cellid_2p) %>% 
-  nrow() / nrow(nonsnp) #0.964659
+  nrow() / nrow(nonsnp) #0.9646716
 
 #What percent of non-SNP sets don't get a length distribution
-filter(nonsnp, is.na(prop12hat)) %>% nrow() / nrow(nonsnp)  #0.0003643399
-
-sessionInfo()
+filter(nonsnp, is.na(prop12hat)) %>% nrow() / nrow(nonsnp)  #0.0003641455
