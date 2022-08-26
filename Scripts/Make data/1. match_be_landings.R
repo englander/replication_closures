@@ -159,7 +159,7 @@ matchTrips <- function(matchrow){
 #Apply over all bins
 (myCores <- detectCores())
 
-cl <- makeCluster(18)
+cl <- makeCluster(14)
 
 clusterExport(cl, "be")
 clusterExport(cl, "land")
