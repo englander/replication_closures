@@ -1077,10 +1077,10 @@
     },
     "kernlab": {
       "Package": "kernlab",
-      "Version": "0.9-30",
+      "Version": "0.9-31",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "911c5e7638c514aac7d0b46840ce6a91",
+      "Hash": "2d7ade74e80201ce89460955cea68408",
       "Requirements": []
     },
     "knitr": {
