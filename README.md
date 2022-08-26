@@ -12,4 +12,22 @@ The paper uses public, non-confidential boundary data of Peru's Exclusive Econom
 The paper uses public, non-confidential population-level length distribution data from Peru's scientific agency (IMARPE, 2017). The archive contains the data in the folder "Data/". The file from IMARPE is EvaluacionHidroacusticaRecPelagicosCrucero170304_march2017.jpg. This file is page 23 from their public report (IMARPE, 2017). 
 
 
+## Computational Requirements
 
+-Software (version of R)
+-Packages - There are many of them. They are all recorded in renv.lock file
+-OS, CPU generation and quantity, memory and necessary disk space
+	-Note that computers with fewer CPUs or less memory can run all analysis scripts, 
+just not some of the Make Data scripts
+-Wall clock-time. One estimate for Make Data scripts and another for analysis scripts
+
+
+## Instructions for Data Preparation and Analysis
+
+This should include separately instructions for data preparation and for analysis.
+
+### Data preparation
+
+### Analysis
+
+Run master script 
