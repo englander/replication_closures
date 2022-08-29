@@ -70,7 +70,7 @@ distFun <- function(myrowind){
 }
 
 
-plan(multisession, workers = 12)
+plan(multisession, workers = 6)
 
 
 distlist <- future_map(
@@ -103,10 +103,10 @@ regdf$cellid_2p <- as.factor(regdf$cellid_2p)
 #Drop potential closures that have NA for size distribution
 regdf <- filter(regdf, !is.na(prop12hat))
 
-#Drop 1,140 observations when no sets during period of potential closure-treatment bin (so dist_km_mean is NA)
+#Drop 1,134 observations when no sets during period of potential closure-treatment bin (so dist_km_mean is NA)
 regdf <- filter(regdf, dist_km_nobs > 0)
 
-#Remaining potential closure-treatment bins have 829 sets on average
+#Remaining potential closure-treatment bins have 825 sets on average
 mean(regdf$dist_km_nobs)
 
 #Given dependent variable (quantile of distance), re-estimate Eq 1 with this as dependent variable
@@ -290,43 +290,3 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
           "\\midrule "
         )),
       type = "latex",file="Output/Tables/table3.tex")
-
-sessionInfo()
-# R version 4.1.0 (2021-05-18)
-# Platform: x86_64-w64-mingw32/x64 (64-bit)
-# Running under: Windows 10 x64 (build 22000)
-# 
-# Matrix products: default
-# 
-# locale:
-#   [1] LC_COLLATE=English_United States.1252  LC_CTYPE=English_United States.1252   
-# [3] LC_MONETARY=English_United States.1252 LC_NUMERIC=C                          
-# [5] LC_TIME=English_United States.1252    
-# 
-# attached base packages:
-#   [1] stats     graphics  grDevices datasets  utils     methods   base     
-# 
-# other attached packages:
-#   [1] Formula_1.2-4    furrr_0.2.3      future_1.23.0    collapse_1.7.6  
-# [5] readr_2.0.1      readxl_1.3.1     purrr_0.3.4      car_3.0-12      
-# [9] carData_3.0-4    xtable_1.8-4     lubridate_1.7.10 lfe_2.8-7       
-# [13] Matrix_1.3-3     geosphere_1.5-10 dplyr_1.0.7      sf_1.0-5        
-# [17] cowplot_1.1.1    rworldmap_1.3-6  sp_1.4-5         ggplot2_3.3.5   
-# 
-# loaded via a namespace (and not attached):
-#   [1] viridis_0.6.1      maps_3.3.0         viridisLite_0.4.0  dotCall64_1.0-1   
-# [5] askpass_1.1        renv_0.15.2        cellranger_1.1.0   globals_0.14.0    
-# [9] pillar_1.6.4       lattice_0.20-44    glue_1.4.2         digest_0.6.27     
-# [13] colorspace_2.0-2   sandwich_3.0-1     pkgconfig_2.0.3    listenv_0.8.0     
-# [17] s2_1.0.7           scales_1.1.1       tzdb_0.1.2         tibble_3.1.2      
-# [21] openssl_2.0.0      proxy_0.4-26       generics_0.1.0     usethis_2.1.5     
-# [25] ellipsis_0.3.2     withr_2.4.2        credentials_1.3.2  magrittr_2.0.1    
-# [29] crayon_1.4.1       maptools_1.1-1     fs_1.5.2           fansi_0.5.0       
-# [33] parallelly_1.29.0  foreign_0.8-81     class_7.3-19       tools_4.1.0       
-# [37] hms_1.1.0          lifecycle_1.0.0    munsell_0.5.0      compiler_4.1.0    
-# [41] e1071_1.7-7        rlang_0.4.11       classInt_0.4-3     units_0.7-2       
-# [45] grid_4.1.0         sys_3.4            spam_2.7-0         wk_0.5.0          
-# [49] gtable_0.3.0       codetools_0.2-18   abind_1.4-5        DBI_1.1.1         
-# [53] R6_2.5.0           gridExtra_2.3      zoo_1.8-9          utf8_1.2.1        
-# [57] KernSmooth_2.23-20 parallel_4.1.0     Rcpp_1.0.7         fields_12.5       
-# [61] vctrs_0.3.8        tidyselect_1.1.1 
