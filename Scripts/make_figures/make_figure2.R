@@ -150,7 +150,7 @@ beinset <- ggdraw() +
   draw_plot(beplot) +
   draw_plot(insetplot, x = .6, y = .65, width = 0.385, height = 0.385)
 
-ggsave(beinset, file=paste0("Output/Figures/figure2.png"),
+ggsave(beinset, file=paste0("Output/Figures/figure2.pdf"),
        w=4,h=6, units = "in", dpi = 900)
 
 #Number of sets
@@ -166,7 +166,7 @@ nrow(besf) / unique(date(besf$FechaInicioCala)) %>% length()
 mean(besf$numjuv,na.rm=T) #570103.1
 mean(besf$betons) #50.22304
 #Average number of adults
-mean(besf$numadults, na.rm=T) #2508788
+mean(besf$numadults, na.rm=T) #2508861
 
 #Calculate distance between each set and the coast
 disttocoast <- st_distance(besf, peru)
@@ -174,5 +174,3 @@ disttocoast <- st_distance(besf, peru)
 distnum <- as.numeric(disttocoast)
 quantile(distnum, probs=seq(from=0,to=1,by=.01))
 #95% of sets are within 79759.164 m of coast
-
-sessionInfo()
