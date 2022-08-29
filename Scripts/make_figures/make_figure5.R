@@ -885,10 +885,6 @@ rdf <- lapply(unique(rdf$start), function(x){
 
 rddf <- bind_rows(rdf)
 
-#Temporarily save
-#save(rddf, file = "G:/My Drive/Downloads/figure_lengthdist_example.Rdata")
-load("G:/My Drive/Downloads/figure_lengthdist_example.Rdata")
-
 #Don't need geometry anymore
 rddf <- as.data.frame(rddf) %>% dplyr::select(-geometry) %>% 
   as_tibble()
@@ -953,10 +949,6 @@ plan(multisession, workers = 6)
 dsdf <- future_map(unique(treatment$treatid), function(x){
   try(applyControl(x))
 })
-
-#Temporarily save
-#save(dsdf, file = 'G:/My Drive/Downloads/figure_lengthdist_dsdf.Rdata')
-load('G:/My Drive/Downloads/figure_lengthdist_dsdf.Rdata')
 
 dsdf <- bind_rows(dsdf)
 
@@ -1090,23 +1082,13 @@ plotFun <- function(mytreatid, mycontrolid){
                    nrow = 2, ncol=2, 
                    rel_heights = c(1.25, 1))
   
-  ggsave(tbt, file=paste0("G:/My Drive/Peru/Output/PaperFigures/plot_treat",
-                          mytreatid, "_control", mycontrolid, 
-                          ".png"),
+  ggsave(tbt, file=paste0("Output/Figures/figure5.pdf"),
          w=7,h=(7/1.69)*(4/3), units = "in", dpi=900)
   
 }
 
-arrange(dsdf, lengthdif) %>% head()
-
-
-plotFun(12, 164) #control potcl has many more zero draws. good in that same dist, within 5 days of each other, and similar area
-plotFun(19, 222) #maybe perfect: visually identical length distributions, can see treated has slightly more high pj draws, similar number of sets. within two weeks of each other, treated is about 1/2 size
-plotFun(22, 470) #not good. pj draws don't look different enough
-plotFun(12, 150) #not good. difference in sets too great.
-plotFun(12, 208) #not good. length dist look a little different
-plotFun(15, 181) #ok. length dist look a little different. but can see higher pj draws for treated
-
+#Make Figure 5
+plotFun(19, 222) 
 
 filter(treatment, treatid == 19) %>% as.data.frame()
 filter(control, controlid == 222) %>% as.data.frame()
@@ -1123,9 +1105,10 @@ which(pj19 > 25) %>% length() #28
 which(pj222 > 25) %>% length() #14
 
 
-#For ref 3 comment 4, what % of potential closures have at least one set 
-#that reports 10% or more juveniles?
-g <- sapply(1:nrow(rddf), function(x){
+#Footnote 9: 
+#69% of potential closures have at least one set 
+#that reports 10% or more juveniles
+more10 <- sapply(1:nrow(rddf), function(x){
   
   thedraws <- strsplit(rddf$pjdraws[x], ";") %>% 
     unlist() %>% as.numeric()
@@ -1133,5 +1116,5 @@ g <- sapply(1:nrow(rddf), function(x){
   ifelse(max(thedraws) >= 10, 1, 0)
 })
 
-which(g == 1) %>% length()
+which(more10 == 1) %>% length()
 670/973
