@@ -108,7 +108,7 @@ myThemeStuff <- theme(panel.background = element_blank(),
   rm(buffers, medarea, medclosed, i, rddf, buF, annuli)
 }
 
-#Side note: 89% of actual closures intersect potential closures
+#Side note: 88% of actual closures intersect potential closures
 {
 #Load potential closures created in 4. make_rddf.R
 load("Output/Data/rddf_10km_lead1tolag4_3dayrect.Rdata")
@@ -151,7 +151,7 @@ for(i in 1:nrow(closed)){
   
 }
 
-mean(closed$intersectspotcl) #0.8902439
+mean(closed$intersectspotcl) #0.8804878
 
 rm(i, row, potcl, inter)
 
@@ -185,7 +185,7 @@ closed$intersect_area_frac[closed$intersect_area_frac > 1] <- 1
 
 summary(closed$intersect_area_frac)
 # Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
-# 0.0000  0.2030  0.5001  0.4890  0.7500  1.0000 
+# 0.0000  0.1907  0.5000  0.4904  0.7500  1.0000 
 
 rm(i, row, potcl, inter)
 
@@ -229,7 +229,5 @@ p6 <- unfilled + ggtitle("4 days after") +
 
 tbt <- plot_grid(p1, p2, p3, p4, p5, p6, ncol=6, nrow=1)
 
-ggsave(tbt, file=paste0("Output/Figures/figure5.pdf"),
+ggsave(tbt, file=paste0("Output/Figures/figure6.pdf"),
        w=7,h=2.8, units = "in", dpi=1200)
-
-sessionInfo()
