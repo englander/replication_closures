@@ -1,4 +1,4 @@
-#Make figures 9 and 10
+#Make figures 8 and 9
 
 rm(list=ls())
 

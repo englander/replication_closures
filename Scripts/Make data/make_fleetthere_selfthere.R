@@ -1,11 +1,10 @@
-#Do vessels respond less to closures if a vessel in their fleet was already there before it is declared?
-#Script used to be called "semidirect_infomechanism*.R"
+#Make data that will be used in make_figure8_figure9.R
 
 rm(list=ls())
 
 library(dplyr); library(ggplot2); library(lfe)
 library(lubridate); library(sf); library(readxl)
-library(purrr); library(parallel); 
+library(purrr); library(parallel); library(readr)
 library(xtable); library(lwgeom); library(tidyr)
 library(Formula); library(msm); library(cowplot)
 
@@ -81,7 +80,7 @@ rddf <- dplyr::select(rddf, -tons, -numindivids, -numjuv, -nobs, -sdtons, -numad
 
 #Create lead bin day before closure announcement would occur
 #(24-48 hours before potential closure begins, because closure announcement occurs 9-24 hours before closure begins)
-rddf <- rbind(
+rddf <- bind_rows(
   rddf, 
   filter(rddf, bdist==0 & tvar==0) %>% 
     mutate(end = start-1-24*3600) %>% 
@@ -174,7 +173,7 @@ applySeasons <- function(mymatricula){
 #Apply over vessels
 (myCores <- detectCores())
 
-cl <- makeCluster(24)
+cl <- makeCluster(14)
 
 clusterExport(cl, "be")
 clusterExport(cl, "rddf")
@@ -285,7 +284,7 @@ fleetArmador <- function(myarm){
 #Apply over owners
 (myCores <- detectCores())
 
-cl <- makeCluster(24)
+cl <- makeCluster(14)
 
 clusterExport(cl, "fleetdf")
 clusterExport(cl, "fleetThere")
@@ -435,7 +434,7 @@ singleVal <- function(joineddf, tvrowind){
 #Apply over all bins
 (myCores <- detectCores())
 
-cl <- makeCluster(myCores - 10)
+cl <- makeCluster(14)
 
 clusterExport(cl, "userddf")
 clusterExport(cl, "besf")
@@ -469,5 +468,3 @@ heterodf <- left_join(myoutcomes,
                       by = c("bin",'rid'))
 
 save(heterodf, file = "Output/Data/fleetthere_selfthere.Rdata")
-
-sessionInfo()
