@@ -9,3 +9,6 @@ source("Scripts/make_figures/make_figure3.R")
 
 #Make Figure 7
 source("Scripts/make_figures/make_figure7.R")
+
+#Make Figures 8 and 9
+source("Scripts/make_figures/make_figure8_figure9.R")

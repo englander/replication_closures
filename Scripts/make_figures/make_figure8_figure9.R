@@ -116,7 +116,7 @@ heterodf <- bind_cols(
 
 heterodf$value <- as.factor(heterodf$value)
 
-##Make Figure 10 first
+##Make Figure 9 first
 
 #Fleet there
 f3 <- felm(
@@ -290,11 +290,11 @@ paperFig <- function(myvar){
                    lag2plot, lag3plot, lag4plot, nrow=2, ncol=3, 
                    rel_widths = c(1.01,1,1))
   
-  ggsave(tbt, file=paste0("Output/Figures/figure8.png"),
+  ggsave(tbt, file=paste0("Output/Figures/figure9.pdf"),
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 
-#Make Figure 8
+#Make Figure 9
 paperFig("hetero_fleetthere")
 
 
@@ -428,19 +428,19 @@ effectFleetThere <- function(myvalue){
 #Fleet wasn't there
 effectFleetThere(0)[[1]]
 # fleetthere chmjuvsstart    totper
-# 1          0     41336.33 0.7794094
-#From below, standard error on totper is  0.05137866
+# 1          0     41478.43 0.7844869
+#From below, standard error on totper is  0.05415778
 
 #Fleet was already there
 effectFleetThere(1)[[1]]
 # fleetthere chmjuvsstart    totper
-# 1          1     7439.953 0.1911517
-#From below, standard error on totper is 0.03707811
+# 1          1      7547.52 0.1943529
+#From below, standard error on totper is 0.03820156
 
 
-#From below, the standard error in differences is 0.06336049
+#From below, the standard error in differences is 0.06627536
 #So p-value is 
-(1 - pt((0.7794094 - 0.1911517) / 0.06336049, df = f3_df))*2
+(1 - pt((0.7844869 - 0.1943529) / 0.06627536, df = f3_df))*2
 
 #2/3 of juveniles caught are caught by vessels whose fleet was not already there
 (sum(heterodf$numjuv[heterodf$type=="fleet_already3" & heterodf$value==0], na.rm=T) / 
@@ -495,7 +495,7 @@ mybigvcov <- diag(toteffect_juv$chmjuvse^2)
                               x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18 + x19 + x20 + 
                               x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                               x31 + x32 + x33 + x34 + x35 + x36)*scaleconstant + chjuvsoutside) / 
-                          juv0, mycoefs, mybigvcov, ses=T)) #0.05137866
+                          juv0, mycoefs, mybigvcov, ses=T)) #0.05415778
 
 
 
@@ -545,7 +545,7 @@ mybigvcov <- diag(toteffect_juv$chmjuvse^2)
                               x11 + x12 + x13 + x14 + x15 + x16 + x17 + x18 + x19 + x20 + 
                               x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                               x31 + x32 + x33 + x34 + x35 + x36)*scaleconstant + chjuvsoutside) / 
-                          juv0, mycoefs, mybigvcov, ses=T)) #0.03707811
+                          juv0, mycoefs, mybigvcov, ses=T)) #0.03820156
 
 #Add these coefs and vcov to big so can calculate se on difference in total percent change
 togcoefs <- c(togcoefs, mycoefs)
@@ -559,7 +559,7 @@ togvcov <- diag(c(diag(togvcov), diag(mybigvcov)))
                                            x47+x48+x49+x50+x51+x52+x53+x54+x55+x56+x57+
                                            x58+x59+x60+x61+x62+x63+x64+x65+x66+x67+
                                            x68+x69+x70+x71+x72)*scaleconstant + chjuvsoutside) / 
-                          juv0, togcoefs, togvcov, ses=T)) #0.06336049
+                          juv0, togcoefs, togvcov, ses=T)) #0.06627536
 
 
 #Clean up
@@ -750,7 +750,7 @@ paperFig <- function(myvar){
                    lag2plot, lag3plot, lag4plot, nrow=2, ncol=3, 
                    rel_widths = c(1.01,1,1))
   
-  ggsave(tbt, file=paste0("Output/Figures/figure7.png"),
+  ggsave(tbt, file=paste0("Output/Figures/figure8.pdf"),
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 
@@ -874,21 +874,21 @@ effectSelfThere <- function(myvalue){
 
 #Vessel wasn't there
 effectSelfThere(0)[[1]]
-# fleetthere chmjuvsstart    totper
-# 1          0     57740.61 0.8749544
-#Below, SE on totper is 0.05513569
+# fleetthere chmjuvsstart   totper
+# 1          0     57658.19 0.872348
+#Below, SE on totper is 0.05766413
 
 
 #Vessel was already there
 effectSelfThere(1)[[1]]
 # fleetthere chmjuvsstart      totper
-# 1          1     116.5841 0.006905187
-#Below, SE on totper is 0.03198715
+# 1          1     90.95052 0.005385245
+#Below, SE on totper is 0.03330305
 
 
-#From below, difference in percent change is 0.06374263
+#From below, difference in percent change is 0.06659013
 #So the p-value on the difference is 
-(1 - pt((0.8749544 - 0.006905187) / 0.06374263, df = s3_df))*2
+(1 - pt((0.872348 - 0.005385245) / 0.06659013, df = s3_df))*2
 #0
 
 
@@ -947,7 +947,7 @@ mybigvcov <- diag(toteffect_juv$chmjuvse^2)
                               x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                               x31 + x32 + x33 + x34 + x35 + x36)*scaleconstant + chjuvsoutside) / 
                           juv0, mycoefs, mybigvcov, ses=T))
-# 0.05513569
+# 0.05766413
 
 
 #Create a larger coefdf and vcovdf so I can calculate delta se on difference in total percentage change
@@ -997,7 +997,7 @@ mybigvcov <- diag(toteffect_juv$chmjuvse^2)
                           x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                           x31 + x32 + x33 + x34 + x35 + x36)*scaleconstant + chjuvsoutside) / 
                       juv0, mycoefs, mybigvcov, ses=T))
-#0.03198715
+#0.03330305
 
 
 
@@ -1014,7 +1014,4 @@ togvcov <- diag(c(diag(togvcov), diag(mybigvcov)))
                                            x58+x59+x60+x61+x62+x63+x64+x65+x66+x67+
                                            x68+x69+x70+x71+x72)*scaleconstant + chjuvsoutside) / 
                               juv0, togcoefs, togvcov, ses=T))
-#0.06374263
-
-
-sessionInfo()
+#0.06659013
