@@ -318,5 +318,3 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
           "\\bottomrule  "
         )),
       type = "latex",file="Output/Tables/table2.tex")
-
-sessionInfo()
