@@ -1,4 +1,4 @@
-#This script ensures you are using the same package version that I did
+#This script ensures you are using the same package versions that I did
 
 #If using Windows OS, set download method
 if(Sys.info()["sysname"] == "Windows"){
