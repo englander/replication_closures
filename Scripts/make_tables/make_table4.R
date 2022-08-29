@@ -86,10 +86,10 @@ reg2 <- felm(asinhtons ~ sigbin + kmtocoast | Matricula:Temporada + date +
                Temporada:cellid_2p | 0 | twoweek_cellid_2p, data = fullbe)
 
 #Mean of sigbin
-mean(fullbe$sigbin) #0.3912658
+mean(fullbe$sigbin) #0.3912253
 
 ##Calculate whether sets occurred inside significant treatment bin of potential closure
-#Created in make_rddf.R
+#Created in 4. make_rddf.R
 load("Output/Data/rddf_10km_lead1tolag4_3dayrect.Rdata")
 
 #Only keep relevant columns of potential closures
@@ -146,7 +146,7 @@ inBuf <- function(myrowind){
 
 (myCores <- detectCores())
 
-cl <- makeCluster(24)
+cl <- makeCluster(14)
 
 clusterExport(cl, "besf")
 clusterExport(cl, "rddf")
@@ -178,7 +178,7 @@ reg4 <- felm(asinhtons ~ sigbin + kmtocoast | Matricula:Temporada + date +
                Temporada:cellid_2p | 0 | twoweek_cellid_2p, data = regdf)
 
 #Mean of sigbin relative to potential closures
-mean(regdf$sigbin) #0.7985614
+mean(regdf$sigbin) #0.7981726
 
 #Format coefficient
 formCoef <- function(reg, coef, dig){
@@ -314,8 +314,5 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
           "\\bottomrule "
           )),
       type = "latex",file="Output/Tables/table4.tex")
-
-
-sessionInfo()
 
 
