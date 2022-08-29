@@ -2,9 +2,9 @@ rm(list=ls())
 
 library(dplyr); library(ggplot2)
 library(sf); library(msm); library(xtable)
-library(purrr); library(lubridate)
+library(parallel); library(purrr); library(lubridate)
 library(lfe); library(Formula)
-library(parallel); library(tidyr); library(cowplot)
+library(tidyr); library(cowplot)
 library(viridis); library(lwgeom)
 
 #Turn off spherical geometry since I wrote these scripts before sf v1
@@ -137,30 +137,15 @@ treatVar <- function(mystart, mybin){
   return(myrect)
 }
 
-#Apply over all bins
-(myCores <- detectCores())
-
-cl <- makeCluster(6)
-
-clusterExport(cl, "predf")
-clusterExport(cl, "closed")
-clusterExport(cl, "treatVar")
-clusterEvalQ(cl, library(dplyr))
-clusterEvalQ(cl, library(sf))
-clusterEvalQ(cl, library(lubridate))
-
-rdf <- parLapply(cl = cl,
-                 unique(predf$start),
+#Apply over all start dates
+rdf <- lapply(unique(predf$start),
                  function(x){
                    
-                   treatVar(x,"lead3_in")
+                   try(treatVar(x,"lead3_in"))
                    
                  })
 
-stopCluster(cl)
-rm(cl, myCores)
-
-rdf <- do.call("rbind",rdf)
+rdf <- bind_rows(rdf)
 
 predf <- rdf
 
@@ -224,7 +209,7 @@ myoutcomes <- parLapply(cl = cl,
 stopCluster(cl)
 rm(cl, myCores)
 
-myoutcomes <- do.call("rbind",myoutcomes)
+myoutcomes <- bind_rows(myoutcomes)
 
 #Join onto predf
 predf <- left_join(predf, myoutcomes, by = c("bin",'rid'))
@@ -508,5 +493,3 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
           "\\bottomrule \\multicolumn{6}{l}{\\multirow{2}{12cm}{Notes: All regressions have 35,113 observations. Dependent variable is the inverse hyperbolic sine of millions of juveniles caught. All regressions estimate treatment effects for all 37 treatment bins, but only the coefficent on treatment fraction for the inside, day-before bin is displayed in this table. Standard errors clustered at level of two-week-of-sample by two-degree grid cell.}} \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ "
         )),
       type = "latex",file="Output/Tables/table1.tex")
-
-sessionInfo()
