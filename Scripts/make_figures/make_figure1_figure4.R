@@ -24,7 +24,7 @@ myThemeStuff <- theme(panel.background = element_blank(),
                       plot.title = element_text(hjust = 0.5, size = 8), 
                       legend.text=element_text(size=6.5, family = "sans"),
                       legend.title = element_text(size=6.5, family = "sans"),
-                      plot.margin = unit(c(0,0,0.2,0),"in"),
+                      plot.margin = unit(c(0.01,0,0.2,0),"in"),
                       plot.tag = element_text(family = "sans", size = 9)
 )
 
@@ -169,7 +169,7 @@ saplot <- ggplot() + geom_sf(data=southamerica,fill='grey93',col=NA) +
         axis.text=element_blank(),
         axis.title=element_blank(),
         axis.title.y=element_blank(),
-        plot.margin = unit(c(0,0,0,.0),"in"),
+        plot.margin = unit(c(0.01,0,0,.0),"in"),
         panel.background = element_rect(fill='white'))
 
 #Crop Peru to bounding box
@@ -224,7 +224,7 @@ f17 <- ggdraw() +
 tbt <- plot_grid(f17, plotlist[[2]], plotlist[[3]], plotlist[[4]],
                  plotlist[[5]], plotlist[[6]], ncol=3, nrow=2)
 
-ggsave(tbt, file=paste0("Output/Figures/figure1.png"),
+ggsave(tbt, file=paste0("Output/Figures/figure1.pdf"),
        w=7,h=(7/3)*(myheight/mywidth)*2, units = "in", dpi=1200)
 
 
@@ -281,9 +281,6 @@ p17 <- ggdraw() +
 tbt <- plot_grid(p17, plotlist_potcl[[2]], plotlist_potcl[[3]], plotlist_potcl[[4]],
                  plotlist_potcl[[5]], plotlist_potcl[[6]], ncol=3, nrow=2)
 
-ggsave(tbt, file="Output/Figures/figure4.png",
+ggsave(tbt, file="Output/Figures/figure4.pdf",
        w=7,h=(7/3)*(myheight/mywidth)*2, units = "in", dpi=1200)
-
-
-sessionInfo()
 
