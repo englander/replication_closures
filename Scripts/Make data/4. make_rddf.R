@@ -179,7 +179,7 @@ drawRects <- function(closeday, distthresh){
       
     })
     
-    myrects <- do.call("rbind", myrects)
+    myrects <- bind_rows( myrects)
     
     #If any rectangles have 0 area, drop them and corresponding convex hull
     if(0 %in% st_area(myrects)=="TRUE"){
@@ -208,7 +208,7 @@ drawRects <- function(closeday, distthresh){
       
     })
     
-    newrects <- do.call("rbind", newrects)
+    newrects <- bind_rows( newrects)
     
     #Re-make cluster variable
     newclust <- st_intersects(clusts[["cpy"]], newrects)
@@ -350,7 +350,7 @@ datevec <- c(
 #Parallel apply over datevec
 (myCores <- detectCores())
 
-cl <- makeCluster(myCores - 10)
+cl <- makeCluster(14)
 
 clusterExport(cl, "fullbe")
 clusterExport(cl, "datevec")
@@ -388,7 +388,7 @@ dropel <- sapply(1:length(rdflist), function(x){
 dropel <- which(dropel==0)
 
 rdf <- rdflist[-dropel]
-rdf <- do.call("rbind", rdf)
+rdf <- bind_rows(rdf)
 
 #Areas of rectangles I've created
 areas <- st_area(rdf) 
@@ -874,7 +874,7 @@ applyBufFun <- function(bmin, bmax){
     BufFun(x, bmin, bmax)
   })
   
-  out <- do.call("rbind",out)
+  out <- bind_rows(out)
   
   return(out)
 }
@@ -882,7 +882,7 @@ applyBufFun <- function(bmin, bmax){
 #Apply over all buffers
 (myCores <- detectCores())
 
-cl <- makeCluster(myCores - 10)
+cl <- makeCluster(14)
 
 clusterExport(cl, "rdf")
 clusterExport(cl, "BufFun")
@@ -902,14 +902,14 @@ rbufs <- parLapply(cl=cl,
 stopCluster(cl)
 rm(cl, myCores)
 
-rbufs <- do.call("rbind",rbufs)
+rbufs <- bind_rows(rbufs)
 
-rdf <- rbind(rdf, rbufs)
+rdf <- bind_rows(rdf, rbufs)
 
 rm(rbufs)
 
 #Duplicate rectangles for leads and lags
-rdf <- rbind(
+rdf <- bind_rows(
   rdf,
   rdf %>% mutate(end=start-1) %>% 
     mutate(start=start-9*3600,tvar=-1),
@@ -975,7 +975,7 @@ applyBufFun_closed <- function(bmin, bmax){
     BufFun_closed(x, bmin, bmax)
   })
   
-  out <- do.call("rbind",out)
+  out <- bind_rows(out)
   
   return(out)
 }
@@ -983,7 +983,7 @@ applyBufFun_closed <- function(bmin, bmax){
 #Apply over all buffers
 (myCores <- detectCores())
 
-cl <- makeCluster(myCores - 10)
+cl <- makeCluster(14)
 
 clusterExport(cl, "closed")
 clusterExport(cl, "BufFun_closed")
@@ -1002,11 +1002,11 @@ cbufs <- parLapply(cl=cl,
 stopCluster(cl)
 rm(cl, myCores)
 
-cbufs <- do.call("rbind",cbufs)
+cbufs <- bind_rows(cbufs)
 
 names(cbufs)[names(cbufs)!="geometry"] <- names(closed)[names(closed)!="geometry"]
 
-closed <- rbind(closed, cbufs)
+closed <- bind_rows(closed, cbufs)
 
 rm(cbufs)
 
@@ -1015,10 +1015,10 @@ closed$six <- 0
 closed$six[grep("\\.25",closed$start_raw)] <- 1
 
 #Duplicate rectangles for leads and lags
-closed <- rbind(
+closed <- bind_rows(
   closed,
   #Preperiod is 9 hours before if begins at midnight; 12 hours before if begins at 6 am
-  rbind(
+  bind_rows(
     filter(closed, six==0) %>% mutate(end=start-1) %>% 
       mutate(start=start-9*3600,tvar=-1),
     filter(closed, six==1) %>% mutate(end=start-1) %>% 
@@ -1047,7 +1047,7 @@ if(st_is_valid(rdf) %>% sum < nrow(rdf)){
     }
   })
   
-  rdf <- do.call("rbind", rdf)
+  rdf <- bind_rows( rdf)
   
 }
 
@@ -1105,36 +1105,20 @@ treatBin <- function(mybin){
     treatVar(x, mybin)
   })
   
-  out <- do.call("rbind",mylist)
+  out <- bind_rows(mylist)
   
   return(out)
 }
 
 #Apply over all bins
-(myCores <- detectCores())
-
-cl <- makeCluster(myCores - 10)
-
-clusterExport(cl, "rdf")
-clusterExport(cl, "closed")
-clusterExport(cl, "treatVar")
-clusterExport(cl, "treatBin")
-clusterEvalQ(cl, library(dplyr))
-clusterEvalQ(cl, library(sf))
-clusterEvalQ(cl, library(lubridate))
-
-rdf <- parLapply(cl = cl,
-                 unique(rdf$bin),
+rdf <- map(unique(rdf$bin),
                  function(x){
                    
-                   treatBin(x)
+                   try(treatBin(x))
                    
                  })
 
-stopCluster(cl)
-rm(cl, myCores)
-
-rdf <- do.call("rbind",rdf)
+rdf <- bind_rows(rdf)
 
 rddf <- mutate(rdf, startdate = as.Date(start) %>% as.factor(),
                season = as.factor(season))
@@ -1146,7 +1130,7 @@ rid <- as.data.frame(rddf) %>%
 
 rid <- mutate(rid, rid = 1:nrow(rid))
 
-#970 potential closures
+#973 potential closures
 nrow(rid)
 
 #Join onto rddf
@@ -1228,7 +1212,7 @@ rddf <- rename(rddf, cellid_2p = cellid)
 rddf <- mutate(rddf,twoweek_cellid_2p = paste0(twowk, "_", cellid_2p))
 
 #Number of clusters: 
-unique(rddf$twoweek_cellid_2p) %>% length() #255
+unique(rddf$twoweek_cellid_2p) %>% length() #259
 
 #Clean up
 rm(twoweek, twowk, counter, i)
@@ -1290,7 +1274,7 @@ outcomesFun <- function(rdrow){
 #Apply over all rows
 (myCores <- detectCores())
 
-cl <- makeCluster(myCores - 10)
+cl <- makeCluster(14)
 
 clusterExport(cl, "rddf")
 clusterExport(cl, "besf")
@@ -1311,7 +1295,7 @@ myoutcomes <- parLapply(cl = cl,
 stopCluster(cl)
 rm(cl, myCores)
 
-myoutcomes <- do.call("rbind",myoutcomes)
+myoutcomes <- bind_rows(myoutcomes)
 
 #Need to first rename other tons variables for clarity
 rddf <- rename(rddf, clusttons = tons, 
@@ -1327,5 +1311,3 @@ rddf <- mutate(rddf, numadults = numindivids - numjuv)
 
 #Save rddf
 save(rddf, file = "Output/Data/rddf_10km_lead1tolag4_3dayrect.Rdata")
-
-sessionInfo()
