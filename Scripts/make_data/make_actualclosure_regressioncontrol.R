@@ -1,3 +1,5 @@
+#In preparation for synthetic controls, calculate control variables 
+#among sets that generate actual closures
 rm(list=ls())
 
 library(dplyr); library(readxl); library(ggplot2)
@@ -169,7 +171,7 @@ closedControls <- function(rowind){
 }
 
 #Parallel apply over closures
-plan(multisession, workers = 4)
+plan(multisession, workers = 14)
 
 closedlist <- future_map(1:nrow(closed),
                      function(x){
@@ -254,7 +256,7 @@ applyBufFun_closed <- function(bmin, bmax){
 }
 
 #Apply over all buffers
-plan(multisession, workers = 4)
+plan(multisession, workers = 14)
 
 cbufs <- future_map(list(
                      c(0,10),c(10,20),c(20,30),c(30,40),c(40,50)                   
@@ -337,7 +339,7 @@ outcomesFun <- function(rowind){
 }
 
 #Apply over all bins
-plan(multisession, workers = 4)
+plan(multisession, workers = 14)
 
 #Apply over rows of closed
 myoutcomes <- future_map(1:nrow(closed),
@@ -451,7 +453,6 @@ regdf <- bind_rows(
          id = as.character(id))
 )
 
-#Save df
-save(regdf, file = "Output/TempData/actualclosure_regressioncontrol.Rdata")
-
-sessionInfo()
+#Clean up; just want to keep regdf
+rm(closed, fullbe, myoutcomes, rddf, applyBufFun_closed, BufFun_closed,
+   closedControls, outcomesFun)
