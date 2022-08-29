@@ -67,10 +67,10 @@ rddf$cellid_2p <- as.factor(rddf$cellid_2p)
 rddf <- filter(rddf, !is.na(prop12hat))
 
 #How many clusters are there
-unique(rddf$twoweek_cellid_2p) %>% length() #255
+unique(rddf$twoweek_cellid_2p) %>% length() #259
 
 #How many observations
-nrow(rddf) #34,164 (so dropped 21 potential closures)
+nrow(rddf) #34,272 (so dropped 21 potential closures)
 
 #Given variable, interact it with bin indicators, giving
 interVars <- function(var){
@@ -153,7 +153,7 @@ toteffect_juv <- group_by(rddf, bin, tvar, bdist) %>%
   arrange(tvar, bdist) %>% ungroup()
 
 #Percent effect, not accounting for reallocation
-sum(toteffect_juv$chmjuv) / sum(toteffect_juv$juv0) #0.746729
+sum(toteffect_juv$chmjuv) / sum(toteffect_juv$juv0) #0.6939389
 
 #Scaled total effect see above comment. 
 #Created in 3. correct_be.R
@@ -161,7 +161,7 @@ load("Output/Data/pbe_imp.Rdata")
 
 #Total effect, not accounting for reallocation
 #Rescale (potential closures nummjuv larger because of double-counting.)
-(sum(fullbe$numjuv,na.rm=T) / sum(rddf$numjuv, na.rm=T)) * sum(toteffect_juv$chmjuv) #60162.01
+(sum(fullbe$numjuv,na.rm=T) / sum(rddf$numjuv, na.rm=T)) * sum(toteffect_juv$chmjuv) #57652.82
 
 toteffect_juv <- dplyr::select(toteffect_juv, -`t value`, -`Pr(>|t|)`)
 
@@ -245,24 +245,24 @@ changejuv <- (sum(fullbe$numjuv,na.rm=T) / sum(rddf$numjuv, na.rm=T)) * sum(tote
 
 #Decomposing effects:
 #Direct effect
-toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="active_in"]  #-2176.79
+toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="active_in"]  #-2209.152
 
 #Inside, post announcement
-toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="lead9hours_in"] #1182.788
+toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="lead9hours_in"] #1213.943
 
 
 #Contemporaneous spatial spillovers
 toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="active_10" | toteffect_juv$bin=="active_20" | toteffect_juv$bin=="active_30" | 
-                              toteffect_juv$bin=="active_40" | toteffect_juv$bin=="active_50"] %>% sum() #44478.46
+                              toteffect_juv$bin=="active_40" | toteffect_juv$bin=="active_50"] %>% sum() #44000.11
 
 #Inside, day after
-toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="lag1_in"]  #2262.906
+toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="lag1_in"]  #2343.204
 
 #Inside, two days after
-toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="lag2_in"]  #2258.567
+toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="lag2_in"]  #2057.434
 
 #Total effect, not accounting for reallocation
-sum(toteffect_juv$chmjuv_scaled) #60163.7
+sum(toteffect_juv$chmjuv_scaled) #57652.82
 
 #Closures cannot increases tons caught because of TAC, so account for this reallocation
 #by estimating how policy affects tons caught on average across treatment bins in treatment window
@@ -276,7 +276,7 @@ tonscaught <- felm(
     " | 0 | twoweek_cellid_2p")),
   data =rddf)
 
-#Increase tons by 35% (exp( 0.29933719 )-1)
+#Increase tons by 31% (exp( 0.2671196 )-1)
 summary(tonscaught)[["coefficients"]]["treatfrac",]
 
 tonscoef <- summary(tonscaught)[["coefficients"]]["treatfrac","Estimate"]
@@ -288,7 +288,7 @@ tonscoef <- summary(tonscaught)[["coefficients"]]["treatfrac","Estimate"]
 tons1 <- sum(fullbe$betons[fullbe$Temporada!="2017-II" & fullbe$Temporada!="2019-II"])
 
 #Change in tons because of policy
-(ctons <- tons1 - tons1/exp(tonscoef)) #2722546
+(ctons <- tons1 - tons1/exp(tonscoef)) #2467098
 
 #Average pj outside of treatment window
 (avgpjoutside <- filter(fullbe, lead_0==0 & lead_10==0 & lead_20==0 & lead_30==0 & lead_40==0 & lead_50==0 & 
@@ -300,7 +300,7 @@ tons1 <- sum(fullbe$betons[fullbe$Temporada!="2017-II" & fullbe$Temporada!="2019
                          !is.na(numindivids) & !is.na(bepjhat) & Temporada!="2017-II" & Temporada!="2019-II") %>%
   #Weight by number of individuals
   mutate(pjweighted = bepjhat*numindivids) %>%  
-  summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100) #0.09045436
+  summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100) #0.09057265
 
 
 #Avg weight of individual caught outside of treatment window
@@ -323,7 +323,7 @@ chindividsoutside <- -ctons/avgweightoutside
 chjuvsoutside <- chindividsoutside*avgpjoutside
 
 #Now can calculate change in juvenile catch due to policy, accounting for reallocation
-(chmjuvsstart <- changejuv + chjuvsoutside) #46829.39
+(chmjuvsstart <- changejuv + chjuvsoutside) #45553.94
 
 #How many juveniles are caught during my sample period in total?
 #F(1)*pj*individuals/VMS fishing obs
@@ -333,7 +333,7 @@ juv1 <- sum(fullbe$numjuv, na.rm=T) / 10^6
 juv0 <- juv1 - chmjuvsstart 
 
 #Then increase in juvenile catch as a percentage is 
-chmjuvsstart / juv0 # 0.4986941
+chmjuvsstart / juv0 # 0.4786111
 
 #Calculate standard error on total change in juvenile catch and in total percentage change
 mycoefs <- toteffect_juv$chmjuv_scaled
@@ -345,7 +345,7 @@ mybigvcov <- diag(toteffect_juv$chmjuvse_scaled^2)
                           x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                           x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
                       1000, mycoefs, mybigvcov, ses=T))
-#5.147492
+#5.436238
 
 #Now get SE on total percentage change
 (totperse <- deltamethod(~ ((x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + 
@@ -353,7 +353,7 @@ mybigvcov <- diag(toteffect_juv$chmjuvse_scaled^2)
                           x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                           x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
                       juv0, mycoefs, mybigvcov, ses=T))
-#0.0548165
+#0.05711567
 
 #What is average percentage juvenile among sets within treatment window? (for text of paper)
 filter(fullbe, (lead_0==1 | lead_10==1 | lead_20==1 | lead_30==1 | lead_40==1 | lead_50==1 | 
@@ -365,14 +365,14 @@ filter(fullbe, (lead_0==1 | lead_10==1 | lead_20==1 | lead_30==1 | lead_40==1 | 
   !is.na(numindivids) & !is.na(bepjhat)) %>%
   #Weight by tons
   mutate(pjweighted = bepjhat*numindivids) %>%  
-  summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100  #0.2537528
+  summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100  #0.2537046
 
 #Average percentage juvenile inside closure between announcement and beginning
 filter(fullbe, lead_0==1 &
          !is.na(numindivids) & !is.na(bepjhat)) %>%
   #Weight by tons
   mutate(pjweighted = bepjhat*numindivids) %>%  
-  summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100 #0.4677222
+  summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100 #0.4658612
 
 
 ##Make main results figures
@@ -510,11 +510,9 @@ paperFig <- function(myvar, ylab){
                    lag2plot, lag3plot, lag4plot, nrow=2, ncol=3, 
                    rel_widths = c(1.01,1,1))
   
-  ggsave(tbt, file=paste0("Output/Figures/figure6.png"),
+  ggsave(tbt, file=paste0("Output/Figures/figure7.pdf"),
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 
 
 paperFig("chbjuv_scaled", "Change in billions of juveniles caught")
-
-sessionInfo()
