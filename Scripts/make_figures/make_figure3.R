@@ -205,7 +205,5 @@ rectplot_present <- ggdraw() +
 stackplot_present <- plot_grid(firstplot_present, rectplot_present, ncol=2,nrow=1,rel_widths = c(1,1),rel_heights = c(1,1))
 
 
-ggsave(stackplot_present, file="Output/Figures/figure3.png",
+ggsave(stackplot_present, file="Output/Figures/figure3.pdf",
        w=6,h=3, units = "in", dpi=1200)
-
-sessionInfo()
