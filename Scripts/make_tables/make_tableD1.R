@@ -42,7 +42,7 @@ owndf <- left_join(owndf, land, by = c("Matricula","Temporada"))
 #Drop observations if no landings observations
 owndf <- filter(owndf, !is.na(tons))
 
-#What % of landings come from SUPNEP vessels? (Union contract mentioned in Section 2.1)
+#What % of landings come from SUPNEP vessels? (Union contract mentioned in footnote 25, Section V)
 #TASA, AUSTRAL GROUP SAA, CANTABRIA SA, DIAMANTE SA, LOS  HALCONES y CARAL SA
 #http://www.perupesquero.org/web/pescadores-industriales-recibiran-22-4-del-8-por-participacion-de-pesca/
 supnep <- c("TECNOLOGICA DE ALIMENTOS S.A.","AUSTRAL GROUP S.A.A","PESQUERA CANTABRIA S.A.",
@@ -169,5 +169,3 @@ sum(owndf$tons[owndf$fleettype=="large"]) / sum(owndf$tons)
 sum(owndf$tons[owndf$fleettype=="medium"]) / sum(owndf$tons)
 
 sum(owndf$tons[owndf$fleettype=="singleton"]) / sum(owndf$tons)
-
-sessionInfo()
