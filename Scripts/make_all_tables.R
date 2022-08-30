@@ -9,3 +9,9 @@ source("Scripts/make_tables/make_table3.R")
 
 #Make Table 4
 source("Scripts/make_tables/make_table4.R")
+
+#Make Table D1
+source("Scripts/make_tables/make_tableD1.R")
+
+#Make Table D2
+source("Scripts/make_tables/make_tableD2.R")

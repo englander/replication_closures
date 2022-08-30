@@ -1,9 +1,10 @@
-#Calculate bepj- bepjhat for the three types of vessels: 
+#Calculate reported percentage juvenile, corrected percentage juvenile, and their 
+#difference for the three types of vessels: 
 #singleton, medium firm, and large firm
 
 rm(list=ls())
 
-library(dplyr)
+library(dplyr); library(readr)
 library(lubridate); library(xtable)
 
 options(scipen=999)
