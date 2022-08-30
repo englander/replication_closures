@@ -468,31 +468,13 @@ sq_sim <- function(returnbiomass, convergecondition, decay, myrc, myjuvfrac){
 #Stock goes extinct with current recruitment constant, fishing mortality, and natural mortality
 #Since recruitment constant is made up, while fishing mortality comes from data and natural mortality
 #comes from Salvatteci and Mendo (2005), choose the recruitment constant such that 
-#biomass after 100 years is close to initial biomass. 
-# plan(multisession, workers = 10)
-# 
-# rclist <- future_map(seq(from = 6.75, to = 7, by = 0.001), function(x){
-#   
-#   eqbiomass <- try(sq_sim(returnbiomass = T, convergecondition = 100, 
-#                           decay = 0.8, myrc = recruit_constant * x, 
-#                           myjuvfrac = harvest_juv_frac)) %>% 
-#     mutate(rcfactor = x)
-#   
-# })
-# 
-# rcdf <- bind_rows(rclist)
-# 125  8.667984    36500    6.990
-# 126  8.779539    36500    6.991
-# 127  8.892514    36500    6.992
-# 128  9.006928    36500    6.993
-# 129  9.122798    36500    6.994
+#biomass after 20 years is close to initial biomass. 
 
-
-#Status quo simulation over 100 years
+#Status quo simulation over 20 years
 sim1 <- sq_sim(F, convergecondition = 20, decay = 0.8, myrc = recruit_constant * 6.853, 
             myjuvfrac = harvest_juv_frac)
 
-sum(sim1[[1]]$newbiomass) #8.96961
+sum(sim1[[1]]$newbiomass) #8.969939
 #Compare to status quo initial biomass
 sum(props$biomass) #8.967002
 
@@ -525,14 +507,14 @@ ggplot(data = sim1[[2]] %>% mutate(yeartime = if_else(season == 2, year + .5, ye
 #How does changing harvest_juv_frac affect final biomass and harvest?
 #It seems like it reduces it. biomass and harvest would be higher if caught fewer juveniles.
 sim0 <- sq_sim(F, convergecondition = 20, decay = 0.8, myrc = recruit_constant * 6.853, 
-             myjuvfrac = harvest_juv_frac / 1.44)
+             myjuvfrac = harvest_juv_frac / 1.41)
 
-sum(sim0[[1]]$newbiomass) #13.81285
-sum(sim0[[2]]$adultharvest) + sum(sim0[[2]]$juvharvest) #143.3653
+sum(sim0[[1]]$newbiomass) #13.53336
+sum(sim0[[2]]$adultharvest) + sum(sim0[[2]]$juvharvest) #141.9747
 
 #compare to status quo
-sum(sim1[[1]]$newbiomass) #8.96961
-sum(sim1[[2]]$adultharvest) + sum(sim1[[2]]$juvharvest) #117.6033
+sum(sim1[[1]]$newbiomass) #8.969939
+sum(sim1[[2]]$adultharvest) + sum(sim1[[2]]$juvharvest) #117.6052
 
 #compare distributions
 ggplot() + 
@@ -544,14 +526,6 @@ ggplot() +
   geom_line(data = sim0[[1]], aes(x = newlength, y = newbiomass), col = 'red') + 
   geom_line(data = sim1[[1]], aes(x = newlength, y = newbiomass))
 
-#Harvest start out same, and then overharvesting of juveniles causes divergence
-ggplot() + 
-  geom_line(data = sim0[[2]] %>% 
-              mutate(yeartime = if_else(season == 2, year + .5, year)),
-            aes(x = yeartime, y = harvest), col = 'red') + 
-  geom_line(data = sim1[[2]] %>% 
-              mutate(yeartime = if_else(season == 2, year + .5, year)),
-            aes(x = yeartime, y = harvest))
 
 
 
@@ -787,17 +761,17 @@ biomasseqplot <- ggplot(data = beqdf, aes(x = length, y = biomass, linetype = sc
   ylab("Biomass (millions of tons)") + 
   scale_x_continuous("Length (cm)", breaks = seq(from = 7, to = 18, by = 1))
   
-#For now just output first two plots.
+#For paper just output first two plots.
 tbt <- plot_grid(harvest_time, biomass_time, nrow=2, ncol=1, 
                  rel_widths = c(1, 1))
 
-ggsave(tbt, file=paste0("Output/Figures/figuree1.png"),
+ggsave(tbt, file=paste0("Output/Figures/figuree1.pdf"),
        w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 
 
 #total harvest in counterfactual and status quo
-harvestdf$harvestquantity[harvestdf$scenario == 'counterfactual' & harvestdf$harvesttype == 'total'] %>% sum() #124.3874 million tons
-harvestdf$harvestquantity[harvestdf$scenario == 'status quo' & harvestdf$harvesttype == 'total'] %>% sum() #102.0356 million tons
+harvestdf$harvestquantity[harvestdf$scenario == 'counterfactual' & harvestdf$harvesttype == 'total'] %>% sum() #123.1809 million tons
+harvestdf$harvestquantity[harvestdf$scenario == 'status quo' & harvestdf$harvesttype == 'total'] %>% sum() #102.0373 million tons
 
 #Discount harvest at 5% rate into 2017 values. midpoint of 2017 is base value
 harvestdf <- mutate(harvestdf, discountedquantity = harvestquantity / (1 + 0.05)^(yeartime - 1.5))
@@ -805,14 +779,14 @@ harvestdf <- mutate(harvestdf, discountedquantity = harvestquantity / (1 + 0.05)
 group_by(harvestdf, scenario, harvesttype) %>% 
   summarise(discountedharvest = sum(discountedquantity)) %>% as.data.frame()
 # scenario harvesttype discountedharvest
-# 1 counterfactual       total         81.097657
-# 2 counterfactual       adult         76.154774
-# 3 counterfactual    juvenile          4.942882
-# 4     status quo       total         68.860500
-# 5     status quo       adult         62.816775
-# 6     status quo    juvenile          6.043724
+# 1 counterfactual       total         80.444121
+# 2 counterfactual       adult         75.436878
+# 3 counterfactual    juvenile          5.007243
+# 4     status quo       total         68.861412
+# 5     status quo       adult         62.817761
+# 6     status quo    juvenile          6.043651
 
-(68.860500 - 81.097657) / 81.097657 #15.1% lower discounted harvest
+( 68.861412 - 80.444121) / 80.444121 #14.4% lower discounted harvest
 
 #Foregone export revenue over 20 year period in 2017 USD
-(((68.860500 - 81.097657) / 81.097657) * 1788500000 * 20) / 10^6
+((( 68.861412 - 80.444121) / 80.444121) * 1788500000 * 20) / 10^6
