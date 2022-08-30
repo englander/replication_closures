@@ -223,7 +223,5 @@ legend_tbt <- get_legend(
 # add the legend underneath the row we made earlier. 
 tbt <- plot_grid(tbt, legend_tbt, ncol = 1, rel_heights = c(1, .05))
 
-ggsave(tbt, file="Output/Figures/figureC2.png",
+ggsave(tbt, file="Output/Figures/figureC2.pdf",
        w=7,h=(7/2)*(myheight/mywidth)*3, units = "in", dpi=1200)
-
-sessionInfo()
