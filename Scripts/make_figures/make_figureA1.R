@@ -174,7 +174,7 @@ applyTreat <- function(mybin){
     treatVar(x, mybin)
   })
   
-  out <- do.call("rbind", out)
+  out <- bind_rows(out)
   
   out <- as.data.frame(out) %>%
     dplyr::select(rid, bin, treatfrac)
@@ -182,30 +182,13 @@ applyTreat <- function(mybin){
   return(out)
 }
 
-#Apply over bins I need treatfrac
-(myCores <- detectCores())
-
-cl <- makeCluster(12)
-
-clusterExport(cl, "predf")
-clusterExport(cl, "closed")
-clusterExport(cl, "treatVar")
-clusterExport(cl, "applyTreat")
-clusterEvalQ(cl, library(dplyr))
-clusterEvalQ(cl, library(sf))
-clusterEvalQ(cl, library(lubridate))
-
-#Apply over rows of predf
-treatlist <- parLapply(cl = cl,
-                        c("lead3_in","lead4_in","lead5_in","lead6_in","lead7_in","lead8_in"),
+#Apply over bins
+treatlist <- lapply(c("lead3_in","lead4_in","lead5_in","lead6_in","lead7_in","lead8_in"),
                         function(x){
                           
-                          applyTreat(x)
+                          try(applyTreat(x))
                           
                         })
-
-stopCluster(cl)
-rm(cl, myCores)
 
 treatdf <- bind_rows(treatlist)
 
@@ -253,7 +236,7 @@ outcomesFun <- function(rdrow){
 #Apply over all bins
 (myCores <- detectCores())
 
-cl <- makeCluster(myCores - 10)
+cl <- makeCluster(4)
 
 clusterExport(cl, "predf")
 clusterExport(cl, "besf")
@@ -518,7 +501,5 @@ plot2 <- makeplot(df2, "Adjusted treatment coefficients") +
 #Stack them
 outplot <- plot_grid(plot1, plot2, nrow=2)
 
-ggsave(outplot, file=paste0("Output/Figures/figureA1.png"),
+ggsave(outplot, file=paste0("Output/Figures/figureA1.pdf"),
        w=7,h=(7/1.69)*2, units = "in", dpi=1200)
-
-sessionInfo()
