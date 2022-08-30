@@ -222,5 +222,5 @@ tbt <- plot_grid(uncorrected_lengthdist, lengthdist_corrected,
                  nrow = 2, ncol=2, 
                  rel_heights = c(1, 1))
 
-ggsave(tbt, file = "Output/Figures/figureC1.png",
+ggsave(tbt, file = "Output/Figures/figureC1.pdf",
        width=7,height=(7/1.69) * 4/3,units='in',dpi=1200)
