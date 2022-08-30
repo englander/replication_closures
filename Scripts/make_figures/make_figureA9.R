@@ -878,7 +878,7 @@ rdf <- do.call("rbind", rdflist)
 #What is size of average potential closure now?
 mean(st_area(rdf)/10^6)
 
-#For referee: calculate overlap between actual and these potential closures
+#For Appendix A.2: calculate overlap between actual and these potential closures
 {
 
   #Crop closures to North-Central
