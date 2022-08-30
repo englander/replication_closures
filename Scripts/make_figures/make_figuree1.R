@@ -765,7 +765,7 @@ biomasseqplot <- ggplot(data = beqdf, aes(x = length, y = biomass, linetype = sc
 tbt <- plot_grid(harvest_time, biomass_time, nrow=2, ncol=1, 
                  rel_widths = c(1, 1))
 
-ggsave(tbt, file=paste0("Output/Figures/figuree1.pdf"),
+ggsave(tbt, file=paste0("Output/Figures/figureE1.pdf"),
        w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 
 
