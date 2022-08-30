@@ -337,21 +337,21 @@ effectHalf <- function(mysecondhalf){
 
 effectHalf(0)[[1]]
 # secondhalf chmjuvsstart    totper
-# 1          0     24105.14 0.3874889
+# 1          0      25744.1 0.4201693
 
 effectHalf(1)[[1]]
 # secondhalf chmjuvsstart   totper
-# 1          1     18569.93 0.517993
+# 1          1     15315.86 0.398823
 
 
-#56% of effect occurs in first half of season
-24105.14/ (24105.14 + 18569.93)
+#63% of effect occurs in first half of season
+25744.1/ (25744.1 + 15315.86)
 
 #What % of tons caught in first half of season and what % caught in second half?
 sum(land$TmDescargada[land$secondhalf==0]) / sum(land$TmDescargada)
-#0.590379
+#0.5848285
 
-#So not a big difference; 56% of effect occurs in first half of season compared to 59% of tons
+#So not a big difference; 63% of effect occurs in first half of season compared to 58% of tons
 #landed are in first half of season
 
 #Get tvar and bdist from rddf
@@ -470,11 +470,9 @@ paperFig <- function(myvar, ylab){
                    lag2plot, lag3plot, lag4plot, nrow=2, ncol=3, 
                    rel_widths = c(1.01,1,1))
   
-  ggsave(tbt, file=paste0("Output/Figures/figureA10.png"),
+  ggsave(tbt, file=paste0("Output/Figures/figureA10.pdf"),
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 
 
 paperFig("juvcoefsecondhalf",TeX("$\\beta_{st}$ coefficient and 95% confidence interval (Equation 1)"))
-
-sessionInfo()
