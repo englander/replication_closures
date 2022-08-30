@@ -1,13 +1,13 @@
 #What would happen if instead of closures, regulator highlighted areas with high percentage of adult catch
 #1. Subtract change in tons and number of juveniles caught due to closures policy
 #2. Choose 410 potential closures with highest adult percentage (from sets that generate potential closure)
-#3. Increase tons caught by 35% within treatment window of these 410 potential closures and calculate
+#3. Increase tons caught by 31% within treatment window of these 410 potential closures and calculate
 #resulting change in juveniles
 #4. Reallocate tons in 4 of 6 seasons where TAC binding and calculate offseting change in juveniles caught
 #5. Effect of eliminating closures policy and replacing it with "adult policy" on juvenile catch 
 # is 1 + 3 + 4
 
-#Adult policy and no closures policy would decrease juvenile catch by 56% relative to status quo closures policy
+#Adult policy and no closures policy would decrease juvenile catch by 52% relative to status quo closures policy
 
 rm(list=ls())
 
@@ -35,11 +35,11 @@ rddf <- as.data.frame(rddf) %>% dplyr::select(-geometry)
 
 rddf <- arrange(rddf, tvar, bdist)
 
-#1. From make_figure8.R, I know that 
-ctons <- 2722546
-chmjuvsstart <- 46829.39
+#1. From make_figures/make_figure7.R, I know that 
+ctons <- 2467098
+chmjuvsstart <- 45553.94
 #And percent change in tons caught is 
-pctons <- exp(0.29933719)-1
+pctons <- exp( 0.2671196 )-1
 
 #2. 410 potential closures with highest adult percentage among sets generating potential closures
 top410 <- filter(rddf, bin=="active_in" & !is.na(meanpj_weighted)) %>% #note meanpj_weighted was calculated among sets generating potential closures in 4. make_rddf.R
@@ -48,7 +48,7 @@ top410 <- filter(rddf, bin=="active_in" & !is.na(meanpj_weighted)) %>% #note mea
 
 top410 <- top410[1:410,] %>% dplyr::select(rid) %>% as.matrix() %>% as.integer()
   
-#3. Increase tons caught by 35% within treatment window of these potential closures
+#3. Increase tons caught by 31% within treatment window of these potential closures
 tons410 <- filter(rddf, rid %in% top410) %>% 
   summarise(tons = sum(tons)) %>% as.matrix() %>% as.numeric()
 
@@ -135,7 +135,7 @@ juv1 <- (sum(fullbe$numjuv, na.rm=T) / 10^6)
 #counterfactual juvenile with adult policy and no closures policy
 juv0 <- juv1 + alteffect #closures policy + (no closures policy + adult policy = alteffect)
 
-#Adult policy and no closures policy would decrease juvenile catch by 56% relative to status quo closures policy
+#Adult policy and no closures policy would decrease juvenile catch by 52% relative to status quo closures policy
 (juv0 - juv1) / juv1
 
 
