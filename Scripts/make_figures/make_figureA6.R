@@ -228,7 +228,7 @@ paperFig <- function(myvar, ylab){
                    lag2plot, lag3plot, lag4plot, nrow=2, ncol=3, 
                    rel_widths = c(1.01,1,1))
   
-  ggsave(tbt, file=paste0("Output/Figures/figureA6.png"),
+  ggsave(tbt, file=paste0("Output/Figures/figureA6.pdf"),
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 
@@ -353,7 +353,7 @@ avgjuvtonsoutside <- filter(fullbe, lead_0==0 & lead_10==0 & lead_20==0 & lead_3
 chtonsjuvoutside <- -ctons*avgjuvtonsoutside
 
 #Now can calculate change in juvenile catch due to policy, accounting for reallocation
-(chtonsjuvsstart <- changejuv + chtonsjuvoutside) #331706.1
+(chtonsjuvsstart <- changejuv + chtonsjuvoutside) #315181.6
 
 #How many tons of juveniles are caught during my sample period in total?
 juv1 <- sum(fullbe$tonsjuv, na.rm=T) 
@@ -362,7 +362,7 @@ juv1 <- sum(fullbe$tonsjuv, na.rm=T)
 juv0 <- juv1 - chtonsjuvsstart 
 
 #Then increase in juvenile catch as a percentage is 
-chtonsjuvsstart / juv0 # 0.43847
+chtonsjuvsstart / juv0 # 0.4077355
 
 
 #Calculate standard error on total change in juvenile catch and in total percentage change
@@ -375,7 +375,7 @@ mybigvcov <- diag(toteffect_juv$chtonsjuvse_scaled^2)
                                       x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                                       x31 + x32 + x33 + x34 + x35 + x36) + chtonsjuvoutside),
                                 mycoefs, mybigvcov, ses=T))
-# 70144.73
+# 75239.02
 
 #t-stat
 chtonsjuvsstart / changetonsjuvse
@@ -387,6 +387,4 @@ chtonsjuvsstart / changetonsjuvse
                                x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                                x31 + x32 + x33 + x34 + x35 + x36) + chtonsjuvoutside) / 
                            juv0, mycoefs, mybigvcov, ses=T))
-#0.09272171
-
-sessionInfo()
+#0.09733317
