@@ -19,7 +19,7 @@
   
   library(dplyr); library(readxl); library(ggplot2)
   library(sf); library(purrr); library(lubridate)
-  library(parallel); library(tidyr)
+  library(parallel); library(tidyr); library(readr)
   
   #Turn off spherical geometry since I wrote these scripts before sf v1
   sf::sf_use_s2(FALSE) 
@@ -2987,12 +2987,6 @@ plan(multisession, workers = 6)
   #Drop potential closures that have NA for size distribution
   rddf <- filter(rddf, !is.na(prop12hat))
   
-  #How many clusters are there
-  unique(rddf$twoweek_cellid_2p) %>% length() #255
-  
-  #How many observations
-  nrow(rddf) #34,164 (so dropped 21 potential closures)
-  
   #Given variable, interact it with bin indicators, giving
   interVars <- function(var){
     
@@ -3074,7 +3068,7 @@ plan(multisession, workers = 6)
     arrange(tvar, bdist) %>% ungroup()
   
   #Percent effect, not accounting for reallocation
-  sum(toteffect_juv$chmjuv) / sum(toteffect_juv$juv0) #0.746729
+  sum(toteffect_juv$chmjuv) / sum(toteffect_juv$juv0)
   
   #Scaled total effect see above comment. 
   #Created in 3. correct_be.R
@@ -3141,24 +3135,24 @@ plan(multisession, workers = 6)
   
   #Decomposing effects:
   #Direct effect
-  toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="active_in"]  #-2176.79
+  toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="active_in"] 
   
   #Inside, post announcement
-  toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="lead9hours_in"] #1182.788
+  toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="lead9hours_in"] 
   
   
   #Contemporaneous spatial spillovers
   toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="active_10" | toteffect_juv$bin=="active_20" | toteffect_juv$bin=="active_30" | 
-                                toteffect_juv$bin=="active_40" | toteffect_juv$bin=="active_50"] %>% sum() #44478.46
+                                toteffect_juv$bin=="active_40" | toteffect_juv$bin=="active_50"] %>% sum()
   
   #Inside, day after
-  toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="lag1_in"]  #2262.906
+  toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="lag1_in"]  
   
   #Inside, two days after
-  toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="lag2_in"]  #2258.567
+  toteffect_juv$chmjuv_scaled[toteffect_juv$bin=="lag2_in"] 
   
   #Total effect, not accounting for reallocation
-  sum(toteffect_juv$chmjuv_scaled) #60163.7
+  sum(toteffect_juv$chmjuv_scaled) 
   
   #Closures cannot increases tons caught because of TAC, so account for this reallocation
   #by estimating how policy affects tons caught on average across treatment bins in treatment window
@@ -3172,7 +3166,6 @@ plan(multisession, workers = 6)
       " | 0 | twoweek_cellid_2p")),
     data =rddf)
   
-  #Increase tons by 35% (exp( 0.29933719 )-1)
   summary(tonscaught)[["coefficients"]]["treatfrac",]
   
   tonscoef <- summary(tonscaught)[["coefficients"]]["treatfrac","Estimate"]
@@ -3196,7 +3189,7 @@ plan(multisession, workers = 6)
                             !is.na(numindivids) & !is.na(bepjhat) & Temporada!="2017-II" & Temporada!="2019-II") %>%
       #Weight by number of individuals
       mutate(pjweighted = bepjhat*numindivids) %>%  
-      summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100) #0.09045436
+      summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100) 
   
   
   #Avg weight of individual caught outside of treatment window
@@ -3219,7 +3212,7 @@ plan(multisession, workers = 6)
   chjuvsoutside <- chindividsoutside*avgpjoutside
   
   #Now can calculate change in juvenile catch due to policy, accounting for reallocation
-  (chmjuvsstart <- changejuv + chjuvsoutside) #46369.62, compared to 46829.39
+  (chmjuvsstart <- changejuv + chjuvsoutside) #46369.62, compared to 45553.94
   
   #How many juveniles are caught during my sample period in total?
   #F(1)*pj*individuals/VMS fishing obs
@@ -3229,7 +3222,7 @@ plan(multisession, workers = 6)
   juv0 <- juv1 - chmjuvsstart 
   
   #Then increase in juvenile catch as a percentage is 
-  chmjuvsstart / juv0 #0.4906038, compared to 0.4986941
+  chmjuvsstart / juv0 #0.4906038, compared to 0.4786111
   
   #Calculate standard error on total change in juvenile catch and in total percentage change
   mycoefs <- toteffect_juv$chmjuv_scaled
@@ -3241,7 +3234,7 @@ plan(multisession, workers = 6)
                                          x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                                          x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
                                      1000, mycoefs, mybigvcov, ses=T))
-  #5.371539, compared to 5.147492
+  #5.371539, compared to 5.436238
   
   #Now get SE on total percentage change
   (totperse <- deltamethod(~ ((x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + 
@@ -3249,7 +3242,7 @@ plan(multisession, workers = 6)
                                  x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                                  x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
                              juv0, mycoefs, mybigvcov, ses=T))
-  #0.05683242, compared to 0.0548165
+  #0.05683242, compared to 0.05711567
   
   
 }
