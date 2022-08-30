@@ -915,5 +915,3 @@ rm(totperse, mycoefs, mybigvcov, myjuv1, juv0, i, chjuvsoutside,
      chmjuv_delta, mycoef, myvcov, scaleconstant, toteffect_juv, secondlist,
      tonscaught, tonscoef, jvtab, juvcatch, mydf)
 }
-
-sessionInfo()
