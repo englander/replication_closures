@@ -1518,7 +1518,7 @@ avgpjoutside <- filter(fullbe, lead_0==0 & lead_10==0 & lead_20==0 & lead_30==0 
                          !is.na(numindivids) & !is.na(bepjhat) & Temporada!="2017-II" & Temporada!="2019-II") %>%
   #Weight by tons
   mutate(pjweighted = bepjhat*numindivids) %>%  
-  summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100 #0.09045436
+  summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100 
 
 
 #Avg weight of individual caught outside of treatment window

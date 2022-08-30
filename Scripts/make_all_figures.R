@@ -25,8 +25,11 @@ source("Scripts/make_figures/make_figureA1.R")
 #Make Figures A2 to A5
 source("Scripts/make_figures/make_figureA2_figureA3_figureA4_figureA5.R")
 
-#Make Figures A6
+#Make Figure A6
 source("Scripts/make_figures/make_figureA6.R")
 
-#Make Figures A7
+#Make Figure A7
 source("Scripts/make_figures/make_figureA7.R")
+
+#Make Figure A8
+source("Scripts/make_figures/make_figureA8.R")
