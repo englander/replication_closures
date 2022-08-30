@@ -2,7 +2,7 @@
 #let that "population" (the fish landed that month) grow until percent juvenile 
 #equals 10%. Difference in tons between this "population" and actual landings
 #is the difference in landings. 
-#I reproduce this method, butinstead of projecting until juvenile catch equals 10%, 
+#I reproduce this method, but instead of projecting until juvenile catch equals 10%, 
 #project until juvenile catch is lower by closures treatment effect.
 
 rm(list=ls())
@@ -94,14 +94,14 @@ ni <- mutate(ni, age = lengthage(length))
 juv1 <- filter(ni, length < 12) %>% summarise(sum(numindivids)) %>% 
   as.matrix() %>% as.numeric() 
 
-#Closures increase juvenile catch by 50%, so project until number of juveniles 
-#caught is 1/1.50 of juv1
+#Closures increase juvenile catch by 48%, so project until number of juveniles 
+#caught is 1/1.48 of juv1
 juv0 <- juv1
 
 projdf <- ni; numdays <- 0
 
 #So move forward one day at a time until number of juveniles caught is <= 1/1.5 of juv1
-while (juv0/juv1 >= 1/1.5) {
+while (juv0/juv1 >= 1/1.48) {
 
   numdays <- numdays + 1
   
@@ -122,7 +122,7 @@ while (juv0/juv1 >= 1/1.5) {
   
 }
 
-#So it took 22 days for juv0 to be 1/1.5 lower than juv1
+#So it took 22 days for juv0 to be 1/1.48 lower than juv1
 #Now calculate how much this population weighs
 #I will use length-weight equation from IMARPE (2019) to be consistent with rest of paper,
 #rather than (similar) length-weight equation in S & M
@@ -139,15 +139,15 @@ projdf <- mutate(projdf, weight = lengthweight(length))
 
 #Convert grams to tons
 (projtons <- mutate(projdf, weight = numindivids*weight / 10^6) %>% 
-  summarise(sum(weight)) %>% as.matrix() %>% as.numeric()) #13423376 tons
+  summarise(sum(weight)) %>% as.matrix() %>% as.numeric()) #13423406 tons
 
 #Tons caught in data
 ni <- mutate(ni, weight = lengthweight(length))
 
 (actualtons <- mutate(ni, weight = numindivids*weight / 10^6) %>% 
-  summarise(sum(weight)) %>% as.matrix() %>% as.numeric()) #13135589
+  summarise(sum(weight)) %>% as.matrix() %>% as.numeric()) #13135595
 
-#So could have caught 287786.6 more tons
+#So could have caught 287811 more tons
 actualtons - projtons
 
 #Or 2.1% more tons
@@ -158,7 +158,3 @@ actualtons - projtons
 #Or 77 (round to 75) million lower export revenues per year (1788500000 is 2017 USD export revenues)
 1788500000*((actualtons - projtons) / projtons) * 2 #two fishing seasons
 #This is going to be an underestimate because does not account for greater reproduction of stock
-
-
-
-sessionInfo()
