@@ -18,3 +18,6 @@ source("Scripts/make_figures/make_figure7.R")
 
 #Make Figures 8 and 9
 source("Scripts/make_figures/make_figure8_figure9.R")
+
+#Make Figures A2 to A5
+source("Scripts/make_figures/make_figureA2_figureA3_figureA4_figureA5.R")

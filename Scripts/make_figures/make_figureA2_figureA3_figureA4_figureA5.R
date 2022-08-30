@@ -66,12 +66,6 @@ rddf$cellid_2p <- as.factor(rddf$cellid_2p)
 #Drop potential closures that have NA for size distribution
 rddf <- filter(rddf, !is.na(prop12hat))
 
-#How many clusters are there
-unique(rddf$twoweek_cellid_2p) %>% length() #255
-
-#How many observations
-nrow(rddf) #34,164
-
 #Given variable, interact it with bin indicators, giving
 interVars <- function(var){
   
@@ -233,7 +227,7 @@ paperFig <- function(myvar, ylab, fignum, yticks){
                    lag2plot, lag3plot, lag4plot, nrow=2, ncol=3, 
                    rel_widths = c(1.01,1,1))
   
-  ggsave(tbt, file=paste0("Output/Figures/figureA", fignum, ".png"),
+  ggsave(tbt, file=paste0("Output/Figures/figureA", fignum, ".pdf"),
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 
@@ -351,5 +345,3 @@ finaldf <- left_join(finaldf, postreattab, by = 'bin')
 
 paperFig("postreatjuv",TeX("$\\beta_{st}$ coefficient and 95% confidence interval (Equation 1)"),
          5, .05)
-
-sessionInfo()
