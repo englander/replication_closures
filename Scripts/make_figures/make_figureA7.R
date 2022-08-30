@@ -351,7 +351,7 @@ datevec <- c(
 #Parallel apply over datevec
 (myCores <- detectCores())
 
-cl <- makeCluster(2)
+cl <- makeCluster(4)
 
 clusterExport(cl, "fullbe")
 clusterExport(cl, "datevec")
@@ -883,7 +883,7 @@ applyBufFun <- function(bmin, bmax){
 #Apply over all buffers
 (myCores <- detectCores())
 
-cl <- makeCluster(myCores - 10)
+cl <- makeCluster(4)
 
 clusterExport(cl, "rdf")
 clusterExport(cl, "BufFun")
@@ -984,7 +984,7 @@ applyBufFun_closed <- function(bmin, bmax){
 #Apply over all buffers
 (myCores <- detectCores())
 
-cl <- makeCluster(myCores - 10)
+cl <- makeCluster(4)
 
 clusterExport(cl, "closed")
 clusterExport(cl, "BufFun_closed")
@@ -1112,30 +1112,14 @@ treatBin <- function(mybin){
 }
 
 #Apply over all bins
-(myCores <- detectCores())
-
-cl <- makeCluster(myCores - 10)
-
-clusterExport(cl, "rdf")
-clusterExport(cl, "closed")
-clusterExport(cl, "treatVar")
-clusterExport(cl, "treatBin")
-clusterEvalQ(cl, library(dplyr))
-clusterEvalQ(cl, library(sf))
-clusterEvalQ(cl, library(lubridate))
-
-rdf <- parLapply(cl = cl,
-                 unique(rdf$bin),
+rdf <- lapply(unique(rdf$bin),
                  function(x){
                    
                    treatBin(x)
                    
                  })
 
-stopCluster(cl)
-rm(cl, myCores)
-
-rdf <- do.call("rbind",rdf)
+rdf <- bind_rows(rdf)
 
 rddf <- mutate(rdf, startdate = as.Date(start) %>% as.factor(),
                season = as.factor(season))
@@ -1285,7 +1269,7 @@ outcomesFun <- function(rdrow){
 #Apply over all rows
 (myCores <- detectCores())
 
-cl <- makeCluster(myCores - 10)
+cl <- makeCluster(4)
 
 clusterExport(cl, "rddf")
 clusterExport(cl, "besf")
@@ -1557,7 +1541,7 @@ chindividsoutside <- -ctons/avgweightoutside
 chjuvsoutside <- chindividsoutside*avgpjoutside
 
 #Now can calculate change in juvenile catch due to policy, accounting for reallocation
-chmjuvsstart <- changejuv + chjuvsoutside #46473.31
+chmjuvsstart <- changejuv + chjuvsoutside
 
 #How many juveniles are caught during my sample period in total?
 #F(1)*pj*individuals/VMS fishing obs
@@ -1567,7 +1551,7 @@ juv1 <- sum(fullbe$numjuv, na.rm=T) / 10^6
 juv0 <- juv1 - chmjuvsstart 
 
 #Then increase in juvenile catch as a percentage is 
-chmjuvsstart / juv0 # 0.4930326
+chmjuvsstart / juv0 # 0.5049646
 
 #Calculate standard error on total change in juvenile catch and in total percentage change
 mycoefs <- toteffect_juv$chmjuv_scaled
@@ -1579,7 +1563,6 @@ mybigvcov <- diag(toteffect_juv$chmjuvse_scaled^2)
                           x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                           x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
                       1000, mycoefs, mybigvcov, ses=T))
-#4.418402
 
 #Now get SE on total percentage change
 (totperse <- deltamethod(~ ((x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + 
@@ -1587,7 +1570,7 @@ mybigvcov <- diag(toteffect_juv$chmjuvse_scaled^2)
                           x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                           x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
                       juv0, mycoefs, mybigvcov, ses=T))
-# 0.04687456
+# 0.04593223
 
 
 finaldf <- toteffect_juv
@@ -1681,11 +1664,9 @@ paperFig <- function(myvar, ylab){
                    lag2plot, lag3plot, lag4plot, nrow=2, ncol=3, 
                    rel_widths = c(1.01,1,1))
   
-  ggsave(tbt, file=paste0("Output/Figures/figureA7.png"),
+  ggsave(tbt, file=paste0("Output/Figures/figureA7.pdf"),
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 
 
 paperFig("juvcoef_4day", TeX("$\\beta_{st}$ coefficient and 95% confidence interval (Equation 1)"))
-
-sessionInfo()
