@@ -352,7 +352,7 @@ datevec <- c(
 #Parallel apply over datevec
 (myCores <- detectCores())
 
-cl <- makeCluster(2)
+cl <- makeCluster(4)
 
 clusterExport(cl, "fullbe")
 clusterExport(cl, "datevec")
@@ -1003,7 +1003,7 @@ applyBufFun <- function(bmin, bmax){
 #Apply over all buffers
 (myCores <- detectCores())
 
-cl <- makeCluster(myCores - 10)
+cl <- makeCluster(4)
 
 clusterExport(cl, "rdf")
 clusterExport(cl, "BufFun")
@@ -1104,7 +1104,7 @@ applyBufFun_closed <- function(bmin, bmax){
 #Apply over all buffers
 (myCores <- detectCores())
 
-cl <- makeCluster(myCores - 10)
+cl <- makeCluster(4)
 
 clusterExport(cl, "closed")
 clusterExport(cl, "BufFun_closed")
@@ -1232,30 +1232,14 @@ treatBin <- function(mybin){
 }
 
 #Apply over all bins
-(myCores <- detectCores())
-
-cl <- makeCluster(myCores - 10)
-
-clusterExport(cl, "rdf")
-clusterExport(cl, "closed")
-clusterExport(cl, "treatVar")
-clusterExport(cl, "treatBin")
-clusterEvalQ(cl, library(dplyr))
-clusterEvalQ(cl, library(sf))
-clusterEvalQ(cl, library(lubridate))
-
-rdf <- parLapply(cl = cl,
-                 unique(rdf$bin),
+rdf <- lapply(unique(rdf$bin),
                  function(x){
                    
                    treatBin(x)
                    
                  })
 
-stopCluster(cl)
-rm(cl, myCores)
-
-rdf <- do.call("rbind",rdf)
+rdf <- bind_rows(rdf)
 
 rddf <- mutate(rdf, startdate = as.Date(start) %>% as.factor(),
                season = as.factor(season))
@@ -1267,7 +1251,7 @@ rid <- as.data.frame(rddf) %>%
 
 rid <- mutate(rid, rid = 1:nrow(rid))
 
-#970 potential closures
+#973 potential closures
 nrow(rid)
 
 #Join onto rddf
@@ -1348,12 +1332,6 @@ rddf <- rename(rddf, cellid_2p = cellid)
 #Now create variable to cluster my standard errors on
 rddf <- mutate(rddf,twoweek_cellid_2p = paste0(twowk, "_", cellid_2p))
 
-#Number of clusters: 
-unique(rddf$twoweek_cellid_2p) %>% length() #255
-
-#Clean up
-rm(twoweek, twowk, counter, i)
-
 ##Calculate catch outcomes inside each element of rddf
 #Make bedat an sf object
 besf <- st_multipoint(cbind(fullbe$lon, fullbe$lat))
@@ -1411,7 +1389,7 @@ outcomesFun <- function(rdrow){
 #Apply over all rows
 (myCores <- detectCores())
 
-cl <- makeCluster(myCores - 10)
+cl <- makeCluster(4)
 
 clusterExport(cl, "rddf")
 clusterExport(cl, "besf")
@@ -1475,9 +1453,6 @@ rddf$cellid_2p <- as.factor(rddf$cellid_2p)
 #Drop potential closures that have NA for size distribution
 rddf <- filter(rddf, !is.na(prop12hat))
 
-#How many clusters are there
-unique(rddf$twoweek_cellid_2p) %>% length()
-
 #Given variable, interact it with bin indicators, giving
 interVars <- function(var){
   
@@ -1540,7 +1515,7 @@ juvcatch <- felm(
     " | 0 | twoweek_cellid_2p")),
   data =rddf)
 
-juvcatch$N #34164
+juvcatch$N #34272
 
 jvtab <- summary(juvcatch)[["coefficients"]]
 
@@ -1685,7 +1660,7 @@ chindividsoutside <- -ctons/avgweightoutside
 chjuvsoutside <- chindividsoutside*avgpjoutside
 
 #Now can calculate change in juvenile catch due to policy, accounting for reallocation
-(chmjuvsstart <- changejuv + chjuvsoutside) #48076.29
+(chmjuvsstart <- changejuv + chjuvsoutside) #47229.12
 
 #How many juveniles are caught during my sample period in total?
 #F(1)*pj*individuals/VMS fishing obs
@@ -1695,7 +1670,7 @@ juv1 <- sum(fullbe$numjuv, na.rm=T) / 10^6
 juv0 <- juv1 - chmjuvsstart 
 
 #Then increase in juvenile catch as a percentage is 
-chmjuvsstart / juv0 # 0.5188622
+chmjuvsstart / juv0 # 0.5051013
 
 #Calculate standard error on total change in juvenile catch and in total percentage change
 mycoefs <- toteffect_juv$chmjuv_scaled
@@ -1707,7 +1682,6 @@ mybigvcov <- diag(toteffect_juv$chmjuvse_scaled^2)
                                        x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                                        x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
                                    1000, mycoefs, mybigvcov, ses=T))
-#5.41085
 
 #Now get SE on total percentage change
 (totperse <- deltamethod(~ ((x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + 
@@ -1715,7 +1689,7 @@ mybigvcov <- diag(toteffect_juv$chmjuvse_scaled^2)
                                x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                                x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
                            juv0, mycoefs, mybigvcov, ses=T))
-# 0.05839655
+# 0.05979682
 
 
 finaldf <- toteffect_juv
@@ -1809,11 +1783,9 @@ paperFig <- function(myvar, ylab){
                    lag2plot, lag3plot, lag4plot, nrow=2, ncol=3, 
                    rel_widths = c(1.01,1,1))
   
-  ggsave(tbt, file=paste0("Output/Figures/figureA9.png"),
+  ggsave(tbt, file=paste0("Output/Figures/figureA9.pdf"),
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 
 
 paperFig("juvcoef_bigger", TeX("$\\beta_{st}$ coefficient and 95% confidence interval (Equation 1)"))
-
-sessionInfo()

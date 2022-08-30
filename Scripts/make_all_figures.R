@@ -34,5 +34,8 @@ source("Scripts/make_figures/make_figureA7.R")
 #Make Figure A8
 source("Scripts/make_figures/make_figureA8.R")
 
+#Make Figure A9
+source("Scripts/make_figures/make_figureA9.R")
+
 #Make Figure A10
 source("Scripts/make_figures/make_figureA10.R")
