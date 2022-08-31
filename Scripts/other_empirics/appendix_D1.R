@@ -140,7 +140,7 @@ applyBufFun_closed <- function(bmin, bmax){
 #Apply over all buffers
 (myCores <- detectCores())
 
-cl <- makeCluster(10)
+cl <- makeCluster(4)
 
 clusterExport(cl, "closed")
 clusterExport(cl, "BufFun_closed")
@@ -284,29 +284,12 @@ treatBin <- function(mybin){
 }
 
 #Apply over all bins
-(myCores <- detectCores())
-
-cl <- makeCluster(10)
-
-clusterExport(cl, "rddf")
-clusterExport(cl, "closed")
-clusterExport(cl, "treatType")
-clusterExport(cl, "treatVar")
-clusterExport(cl, "treatBin")
-clusterEvalQ(cl, library(dplyr))
-clusterEvalQ(cl, library(sf))
-clusterEvalQ(cl, library(lubridate))
-
-rdf <- parLapply(cl = cl,
-                 unique(rddf$bin),
+rdf <- lapply(unique(rddf$bin),
                  function(x){
                    
                    treatBin(x)
                    
                  })
-
-stopCluster(cl)
-rm(cl, myCores)
 
 rdf <- do.call("rbind",rdf)
 
@@ -525,18 +508,16 @@ effectArea <- function(myarea){
 }
 
 effectArea(0)[[1]]
-# areatype chmjuvsstart   totper
-# 1        0     35373.93 0.335745
-#From below SE on totper is 0.06478523
+# areatype chmjuvsstart    totper
+# 1        0     34294.96 0.3222048
 
 effectArea(1)[[1]]
 # areatype chmjuvsstart    totper
-# 1        1      51687.9 0.5804659
-#From below SE on totper is 0.1053633
+# 1        1     46260.92 0.4896762
 
-##From below, standard error on difference in percent change is 0.1236873
-#So the p-value on the difference is  0.04787547
-(1 - pt((0.5804659 - 0.335745) / 0.1236873, df = jvdf))*2
+##From below, standard error on difference in percent change is 0.1247279
+#So the p-value on the difference is  0.1793802
+(1 - pt((0.4896762 - 0.3222048) / 0.1247279, df = jvdf))*2
 
 
 
@@ -581,7 +562,6 @@ mybigvcov <- diag(toteffect_juv$chmjuvse^2)
                               x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                               x31 + x32 + x33 + x34 + x35 + x36)*scaleconstant + chjuvsoutside) / 
                           juv0, mycoefs, mybigvcov, ses=T))
-#0.06478523
 
 #Create a larger coefdf and vcovdf so I can calculate delta se on difference in total percentage change
 togcoefs <- mycoefs; togvcov <- mybigvcov 
@@ -628,7 +608,6 @@ mybigvcov <- diag(toteffect_juv$chmjuvse^2)
                               x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                               x31 + x32 + x33 + x34 + x35 + x36)*scaleconstant + chjuvsoutside) / 
                           juv0, mycoefs, mybigvcov, ses=T))
-#0.1053633
 
 #Add these coefs and vcov to big so can calculate se on difference in total percent change
 togcoefs <- c(togcoefs, mycoefs)
@@ -643,7 +622,7 @@ togvcov <- diag(c(diag(togvcov), diag(mybigvcov)))
                                            x58+x59+x60+x61+x62+x63+x64+x65+x66+x67+
                                            x68+x69+x70+x71+x72)*scaleconstant + chjuvsoutside) / 
                               juv0, togcoefs, togvcov, ses=T))
-#0.1236873
+#0.1247279
 
 #Clean up
 rm(totperse, mycoefs, mybigvcov, myjuv1, juv0, i, chjuvsoutside, 
@@ -789,17 +768,15 @@ rm(totperse, mycoefs, mybigvcov, myjuv1, juv0, i, chjuvsoutside,
   
   effectDays(3)[[1]]
   # daytype chmjuvsstart    totper
-  # 1       3     45684.71 0.4806452
-  #From below SE on totper is 0.05481505
+  # 1       3     43749.07 0.4510943
   
   effectDays(5)[[1]]
-  # daytype chmjuvsstart    totper
-  # 1       5     46657.05 0.4959486
-  #From below SE on totper is 0.2244611
+  # daytype chmjuvsstart  totper
+  # 1       5     52565.06 0.59619
   
-  ##From below, difference in percent change is 0.2310573
-  #So the p-value on the difference is 0.9471936
-  (1 - pt((0.4959486 - 0.4806452) / 0.2310573, df = jvdf))*2
+  ##From below, se difference in percent change is 0.2436839
+  #So the p-value on the difference is 0.5515637
+  (1 - pt((0.59619 - 0.4510943) / 0.2436839, df = jvdf))*2
   
   
 
@@ -844,7 +821,6 @@ rm(totperse, mycoefs, mybigvcov, myjuv1, juv0, i, chjuvsoutside,
                                 x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 + 
                                 x30)*scaleconstant + chjuvsoutside) / 
                             juv0, mycoefs, mybigvcov, ses=T))
-  #0.05481505
   
   #Create a larger coefdf and vcovdf so I can calculate delta se on difference in total percentage change
   togcoefs <- mycoefs; togvcov <- mybigvcov 
@@ -891,8 +867,6 @@ rm(totperse, mycoefs, mybigvcov, myjuv1, juv0, i, chjuvsoutside,
                                 x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 + 
                                 x30)*scaleconstant + chjuvsoutside) / 
                             juv0, mycoefs, mybigvcov, ses=T))
-  #0.2244611
-  
   
   #Add these coefs and vcov to big so can calculate se on difference in total percent change
   togcoefs <- c(togcoefs, mycoefs)
@@ -907,11 +881,5 @@ rm(totperse, mycoefs, mybigvcov, myjuv1, juv0, i, chjuvsoutside,
                                              x58+x59+x60)*scaleconstant + chjuvsoutside) / 
                                 juv0, togcoefs, togvcov, ses=T))
   
-  #0.2310573
-  
-  
-  #Clean up
-  rm(totperse, mycoefs, mybigvcov, myjuv1, juv0, i, chjuvsoutside, 
-     chmjuv_delta, mycoef, myvcov, scaleconstant, toteffect_juv, secondlist,
-     tonscaught, tonscoef, jvtab, juvcatch, mydf)
+  #0.2436839
 }
