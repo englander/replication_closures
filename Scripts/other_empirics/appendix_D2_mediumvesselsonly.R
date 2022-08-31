@@ -5,7 +5,7 @@ library(sf); library(msm)
 library(purrr); library(lubridate)
 library(lfe); library(Formula)
 library(parallel); library(tidyr); library(cowplot)
-library(viridis)
+library(viridis); library(readr)
 
 #Turn off spherical geometry since I wrote these scripts before sf v1
 sf::sf_use_s2(FALSE) 
@@ -62,7 +62,7 @@ fullbe <- left_join(fullbe,
 #Create indicator for being above median length
 fullbe <- mutate(fullbe, abovemedian = if_else(eslora > median(eslora),1,0))
 
-#What 25% of medium vessels are above median length?
+#What % of medium vessels are above median length?
 filter(fullbe, fleettype=="medium" & abovemedian==1) %>% 
   distinct(Matricula) %>% nrow() / 
   filter(fullbe, fleettype=="medium") %>% 
@@ -148,7 +148,7 @@ outcomesFun <- function(rdrow){
 #Apply over all bins
 (myCores <- detectCores())
 
-cl <- makeCluster(12)
+cl <- makeCluster(4)
 
 clusterExport(cl, "rddf")
 clusterExport(cl, "besf")
@@ -395,16 +395,16 @@ effectLength <- function(lengthtype){
 
 effectLength(0)[[1]]
 # abovemedian chmjuvsstart    totper
-# 1           0     4176.828 0.4685894
+# 1           0     4033.461 0.4454436
 
 effectLength(1)[[1]]
-# abovemedian chmjuvsstart   totper
-# 1           1     3736.752 0.245262
+# abovemedian chmjuvsstart    totper
+# 1           1     3730.975 0.2448035
 
 
-##From below, standard error on difference in percent change is 0.05801421
-#So the p-value on the difference is 0.0001184541
-(1 - pt((0.4685894 - 0.245262) / 0.05801421, df = jvdf))*2
+##From below, standard error on difference in percent change is 0.05732406
+#So the p-value on the difference is 0.0004653779
+(1 - pt((0.4454436 - 0.2448035) / 0.05732406, df = jvdf))*2
 
 
 
@@ -448,7 +448,6 @@ mybigvcov <- diag(toteffect_juv$chmjuvse^2)
                               x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                               x31 + x32 + x33 + x34 + x35 + x36)*scaleconstant + chjuvsoutside) / 
                           juv0, mycoefs, mybigvcov, ses=T))
-#0.04964036
 
 #Create a larger coefdf and vcovdf so I can calculate delta se on difference in total percentage change
 togcoefs <- mycoefs; togvcov <- mybigvcov 
@@ -495,7 +494,6 @@ mybigvcov <- diag(toteffect_juv$chmjuvse^2)
                               x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                               x31 + x32 + x33 + x34 + x35 + x36)*scaleconstant + chjuvsoutside) / 
                           juv0, mycoefs, mybigvcov, ses=T))
-#0.03002471
 
 #Add these coefs and vcov to big so can calculate se on difference in total percent change
 togcoefs <- c(togcoefs, mycoefs)
@@ -510,6 +508,4 @@ togvcov <- diag(c(diag(togvcov), diag(mybigvcov)))
                                            x58+x59+x60+x61+x62+x63+x64+x65+x66+x67+
                                            x68+x69+x70+x71+x72)*scaleconstant + chjuvsoutside) / 
                               juv0, togcoefs, togvcov, ses=T))
-#0.05801421
-
-sessionInfo()
+#0.05732406
