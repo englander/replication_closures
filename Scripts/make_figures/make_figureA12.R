@@ -128,9 +128,9 @@ juvcatch <- felm(
 
 #Number of treatment observations included in regression
 filter(regdf, closuretype=="actual") %>% nrow() #14472
-filter(regdf, treatfrac==0) %>% nrow() #24862
+filter(regdf, treatfrac==0) %>% nrow() #25127
 #Total obs in regression
-juvcatch$N #39334
+juvcatch$N #39599
 
 jvtab <- summary(juvcatch)[["coefficients"]]
 
@@ -235,7 +235,7 @@ paperFig <- function(myvar, ylab){
                    lag2plot, lag3plot, lag4plot, nrow=2, ncol=3, 
                    rel_widths = c(1.01,1,1))
   
-  ggsave(tbt, file=paste0("Output/Figures/figureA12.png"),
+  ggsave(tbt, file=paste0("Output/Figures/figureA12.pdf"),
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 
@@ -372,7 +372,7 @@ chindividsoutside <- -ctons/avgweightoutside
 chjuvsoutside <- chindividsoutside*avgpjoutside
 
 #Now can calculate change in juvenile catch due to policy, accounting for reallocation
-(chmjuvsstart <- changejuv + chjuvsoutside) #34449.99
+(chmjuvsstart <- changejuv + chjuvsoutside) #35538.04
 
 #How many juveniles are caught during my sample period in total?
 #F(1)*pj*individuals/VMS fishing obs
@@ -382,7 +382,7 @@ juv1 <- sum(fullbe$numjuv, na.rm=T) / 10^6
 juv0 <- juv1 - chmjuvsstart 
 
 #Then increase in juvenile catch as a percentage is 
-(chmjuvsstart / juv0) # 0.3241331
+(chmjuvsstart / juv0) #0.3378291
 
 
 #Calculate standard error on total change in juvenile catch and in total percentage change
@@ -395,7 +395,7 @@ mybigvcov <- diag(toteffect_juv$chmjuvse_scaled^2)
                                       x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                                       x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
                                   1000, mycoefs, mybigvcov, ses=T))
-#2.920087
+#2.881216
 
 #Now get SE on total percentage change
 (totperse <- deltamethod(~ ((x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + 
@@ -403,7 +403,4 @@ mybigvcov <- diag(toteffect_juv$chmjuvse_scaled^2)
                               x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                               x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
                           juv0, mycoefs, mybigvcov, ses=T))
-#0.02747452
-
-sessionInfo()
-
+#0.0273892
