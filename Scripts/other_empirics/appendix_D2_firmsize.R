@@ -146,7 +146,7 @@ outcomesFun <- function(rdrow){
 #Apply over all bins
 (myCores <- detectCores())
 
-cl <- makeCluster(12)
+cl <- makeCluster(4)
 
 clusterExport(cl, "rddf")
 clusterExport(cl, "besf")
@@ -388,35 +388,32 @@ effectLength <- function(myfleet){
 }
 
 effectLength("large")
-# fleettype chmjuvsstart   totper
-# 1     large     36644.69 0.598484
+# fleettype chmjuvsstart    totper
+# 1     large     36997.85 0.6077236
 
 effectLength("medium")
 # fleettype chmjuvsstart    totper
-# 1    medium     9851.306 0.4435197
+# 1    medium     9568.206 0.4254077
 
 effectLength("singleton")
-# fleettype chmjuvsstart    totper
-# 1 singleton     1078.342 0.1109604
+# fleettype chmjuvsstart     totper
+# 1 singleton     919.2332 0.09306959
 
 #Top 7 firms account for % of effect
-36644.69 / (36644.69 +9851.306 + 1078.342)
+36997.85 / (36997.85 +9568.206 + 919.2332)
 
 #Medium firms account for %
-9851.306/ (36644.69 +9851.306 + 1078.342)
+9568.206/ (36997.85 +9568.206 + 919.2332)
 
 #Singletons account for %
-1078.342 / (36644.69 +9851.306 + 1078.342)
+919.2332 / (36997.85 +9568.206 + 919.2332)
 
 #What percent of juvenile catch does each group account for?
 group_by(fullbe, fleettype) %>% 
   summarise(mjuv = sum(numjuv, na.rm=T) / 10^6) %>% ungroup() %>%
   mutate(percent = mjuv / sum(mjuv))
 # fleettype   mjuv percent
-# * <chr>      <dbl>   <dbl>
-#   1 large     97874.  0.695 
-# 2 medium    32063.  0.228 
-# 3 singleton 10797.  0.0767
-
-sessionInfo()
-
+# <chr>      <dbl>   <dbl>
+#   1 large     97877.  0.695 
+# 2 medium    32060.  0.228 
+# 3 singleton 10796.  0.0767
