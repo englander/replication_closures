@@ -5,7 +5,7 @@ library(sf); library(msm)
 library(purrr); library(lubridate)
 library(lfe); library(Formula)
 library(parallel); library(tidyr); library(cowplot)
-library(viridis)
+library(viridis); library(readr)
 
 #Turn off spherical geometry since I wrote these scripts before sf v1
 sf::sf_use_s2(FALSE) 
@@ -135,7 +135,7 @@ outcomesFun <- function(rdrow){
 #Apply over all bins
 (myCores <- detectCores())
 
-cl <- makeCluster(12)
+cl <- makeCluster(4)
 
 clusterExport(cl, "rddf")
 clusterExport(cl, "besf")
@@ -377,21 +377,14 @@ effectLength <- function(lengthtype){
 
 effectLength(1)
 # abovemedian chmjuvsstart    totper
-# 1           1     43327.76 0.5871159
+# 1           1     43537.04 0.5916097
 
 effectLength(0)
 # abovemedian chmjuvsstart    totper
-# 1           0     4590.536 0.2413845
+# 1           0     4419.721 0.2303643
 
-#So above median vessels account for 90% of effect
+#So above median vessels account for 91% of effect
 effectLength(1) %>% dplyr::select(chmjuvsstart) %>% as.matrix() %>% as.numeric() / 
-  (
-    effectLength(1) %>% dplyr::select(chmjuvsstart) %>% as.matrix() %>% as.numeric() + 
-      effectLength(0) %>% dplyr::select(chmjuvsstart) %>% as.matrix() %>% as.numeric()
-  )
-
-#So below median vessels account for 10%
-effectLength(0) %>% dplyr::select(chmjuvsstart) %>% as.matrix() %>% as.numeric() / 
   (
     effectLength(1) %>% dplyr::select(chmjuvsstart) %>% as.matrix() %>% as.numeric() + 
       effectLength(0) %>% dplyr::select(chmjuvsstart) %>% as.matrix() %>% as.numeric()
@@ -399,7 +392,7 @@ effectLength(0) %>% dplyr::select(chmjuvsstart) %>% as.matrix() %>% as.numeric()
 
 #What percent of juveniles are caught by above median vessels? 
 (sum(heterodf$numjuv[heterodf$abovemedian==1], na.rm=T) / 
-    sum(heterodf$numjuv, na.rm=T)) #0.8319817
+    sum(heterodf$numjuv, na.rm=T)) #0.8340564
 
 #Cannot separate vessel size from fleet size because large vessels are owned by large firms
 #e.g. 96% of vessels owned by top 7 firms are above median length
@@ -408,6 +401,3 @@ filter(owndf, Temporada=="2019-I") %>%
   filter(eslora > 27.7) %>% nrow() / 
   filter(owndf, Temporada=="2019-I") %>% 
   filter(numowned > 11) %>% nrow()
-
-
-sessionInfo()
