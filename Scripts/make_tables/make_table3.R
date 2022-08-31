@@ -282,11 +282,12 @@ print(myxtable, floating = TRUE, caption.placement="top",sanitize.text.function 
       include.colnames=FALSE,include.rownames=FALSE,table.placement="tb",
       hline.after=NULL,
       add.to.row=list(
-        pos = list(0,0,2,nrow(table) - 1),
+        pos = list(0,0,2,nrow(table) - 1,nrow(table)),
         command = c(
           paste0("\\toprule & \\multicolumn{6}{c}{Dependent variable: Distance quantile (km)}  \\\\ "),
           "\\midrule ",
           "\\midrule ",
-          "\\midrule "
+          "\\midrule ",
+          "\\bottomrule "
         )),
       type = "latex",file="Output/Tables/table3.tex")
