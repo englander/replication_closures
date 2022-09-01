@@ -31,9 +31,15 @@ The paper uses public, non-confidential population-level length distribution dat
 
 ## Instructions for Data Preparation and Analysis
 
-### Data preparation
+###Getting the replication files
+
+If you are cloning the repository from Github (https://github.com/englander/replication_closures), open RStudio, click File -> New Project -> Version Control -> Git, paste "https://github.com/englander/replication_closures.git", and click Create Project. If you downloaded the replication files as a zip file, extract them, open RStudio, click File -> Open Project, find replication_closures.Rproj, and click Open. 
+
+###Installing specific package versions
 
 First, run Scripts/RUN THIS FIRST.R. That script will install all R packages you need. It installs the same package versions I used to facilitate reproducibility. 
+
+### Data preparation
 
 Then, open Scripts/make_all_data.R. If you skip the last line, source("Scripts/make_data/7. make_data_figA13.R"), it will run much faster. You can see the sub-scripts that make_all_data.R runs in Scripts/make_data folder. 
 
