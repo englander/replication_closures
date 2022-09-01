@@ -16,8 +16,8 @@ Sys.setenv(TZ='America/Lima')
 
 `%not in%` <- function (x, table) is.na(match(x, table, nomatch=NA_integer_))
 
-#Created in make_actualclosure_regressioncontrol.R
-load("Output/TempData/actualclosure_regressioncontrol.Rdata")
+#Created regdf: actual closure-treatment bins binded with potential closure-treatment bins  
+source("Scripts/make_data/make_actualclosure_regressioncontrol.R")
 
 #Created in 3. correct_be.R
 load("Output/Data/pbe_imp.Rdata")
@@ -43,7 +43,7 @@ regdf <- mutate(regdf, six = if_else(id %in% sixids, 1, 0))
 rm(sixids)
 
 #Need to calculate juvenile catch in preperiod for both actual and potential closures
-predf <- rbind(
+predf <- bind_rows(
   filter(regdf, tvar==0) %>% 
     mutate(end = start - 24*3600-1) %>% 
     mutate(start = if_else(six==0,start - 9*3600, start - 12*3600), 
@@ -123,7 +123,7 @@ outcomesFun <- function(rdrow){
 #Apply over all bins
 (myCores <- detectCores())
 
-cl <- makeCluster(12)
+cl <- makeCluster(14)
 
 clusterExport(cl, "predf")
 clusterExport(cl, "fullbe")
@@ -202,7 +202,7 @@ synthFun <- function(rowind){
 #Apply over actual closures
 (myCores <- detectCores())
 
-cl <- makeCluster(10)
+cl <- makeCluster(14)
 
 clusterExport(cl, "actualactive_in")
 clusterExport(cl, "possiblecontrols")
@@ -224,7 +224,7 @@ bigsynthlist <- parLapply(cl = cl,
                         })
 
 #Save
-save(bigsynthlist, file = 'Output/TempData/bigsynthlist.Rdata')
+save(bigsynthlist, file = 'Output/TempData/prelim_data_figA13.Rdata')
 
 stopCluster(cl)
 rm(cl, myCores)
@@ -235,7 +235,7 @@ whichsuccess <- sapply(1:410, function(x){
 })
 
 #Number of failures
-which(whichsuccess==0) %>% length() #115
+which(whichsuccess==0) %>% length() #116
 
 #Add success indicator to actualactive_in
 actualactive_in <- mutate(actualactive_in, synth = whichsuccess)
@@ -301,8 +301,4 @@ synthdf <- map_df(1:length(bigsynthlist), function(x){
   }
 })
 
-save(synthdf, file="Output/Data/synthdf.Rdata")
-
-
-sessionInfo()
-
+save(synthdf, file="Output/Data/data_figA13.Rdata")
