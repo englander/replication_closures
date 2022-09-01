@@ -464,7 +464,6 @@ sq_sim <- function(returnbiomass, convergecondition, decay, myrc, myjuvfrac){
   
 }
 
-
 #Stock goes extinct with current recruitment constant, fishing mortality, and natural mortality
 #Since recruitment constant is made up, while fishing mortality comes from data and natural mortality
 #comes from Salvatteci and Mendo (2005), choose the recruitment constant such that 
