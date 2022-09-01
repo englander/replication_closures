@@ -41,10 +41,18 @@ First, run Scripts/RUN THIS FIRST.R. That script will install all R packages you
 
 ### Data preparation
 
-Then, open Scripts/make_all_data.R. If you skip the last line, source("Scripts/make_data/7. make_data_figA13.R"), it will run much faster. You can see the sub-scripts that make_all_data.R runs in Scripts/make_data folder. 
+Run the scripts in Scripts/make_data folder in numeric order, starting with 0. make_closures_df.R. 
+
+After running 4. make_rddf.R, you will have created the data necessary to create all tables, Figures 1-7, Figures A1-A11, Figures B1-B2, Figures C1-C2, and Figure E1. After running 5. make_fleetthere_selfthere.R, you will have created the data necessary to create Figures 8 and 9. Figure A12 requires running 6. make_actualclosure_regressioncontrol.R, and Figure A13 requires running 6. make_actualclosure_regressioncontrol.R and 7. make_data_figA13.R. 
+
+Note that 7. make_data_figA13.R requires 64 hours with 14 cores. The other scripts are much faster. I provide output from all make_data scripts in Output/Data folder. So if you want to skip the data preparation stage, and go right to reproducing tables and figures, you may do so.
 
 ### Analysis
 
-Scripts/make_all_figures.R creates all figures in the paper. Scripts/make_tables.R creates all tables in the paper. Files in Scripts/other_empirics folder contain calculations that are described in the paper but which do not produce a table or figure.
+Scripts/make_figures folder contains the scripts that make all figures in the paper. Scripts are named by the figure(s) they create.
 
-I provide output from Scripts/make_all_data.R in Output/Data folder. So if you want to skip the data preparation stage, and go right to reproducing tables and figures, you may do so.
+Scripts/make_tables folder contains the scripts that make all tables in the paper. Scripts are named by the table(s) they create. 
+
+Files in Scripts/other_empirics folder contain calculations that are described in the paper but which do not produce a table or figure.
+
+
