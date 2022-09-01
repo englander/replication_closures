@@ -36,8 +36,8 @@ myThemeStuff <- theme(panel.background = element_blank(),
 
 
 
-#Created in make_synthdf.R
-load("Output/Data/synthdf.Rdata")
+#Created in make_data_figA13.R
+load("Output/Data/data_figA13.Rdata")
 
 #Calculate mean outcome in each bin
 meanout <- mutate(synthdf, synthdif = asinhnummjuv_treat - asinhnummjuv_control,
@@ -122,7 +122,7 @@ paperFig <- function(myvar, ylab){
                    lag2plot, lag3plot, lag4plot, nrow=2, ncol=3, 
                    rel_widths = c(1.01,1,1))
   
-  ggsave(tbt, file=paste0("Output/Figures/figureA13.png"),
+  ggsave(tbt, file=paste0("Output/Figures/figureA13.pdf"),
          w=7,h=(7/1.69)*2, units = "in", dpi=1200)
 }
 
@@ -168,7 +168,7 @@ tons1 <- sum(fullbe$betons[fullbe$Temporada!="2017-II" & fullbe$Temporada!="2019
                           !is.na(numindivids) & !is.na(bepjhat) & Temporada!="2017-II" & Temporada!="2019-II") %>%
     #Weight by number of individuals
     mutate(pjweighted = bepjhat*numindivids) %>%  
-    summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100) #0.09045413
+    summarise(perjuv = sum(pjweighted)/sum(numindivids)) %>% as.numeric() / 100)
 
 
 #Avg weight of individual caught outside of treatment window
@@ -191,7 +191,7 @@ chindividsoutside <- -ctons/avgweightoutside
 chjuvsoutside <- chindividsoutside*avgpjoutside
 
 #Now can calculate change in juvenile catch due to policy, accounting for reallocation
-(chmjuvsstart <- changejuv + chjuvsoutside) #40106.27
+(chmjuvsstart <- changejuv + chjuvsoutside) #35401.9
 
 #How many juveniles are caught during my sample period in total?
 #F(1)*pj*individuals/VMS fishing obs
@@ -201,6 +201,4 @@ juv1 <- sum(fullbe$numjuv, na.rm=T) / 10^6
 juv0 <- juv1 - chmjuvsstart 
 
 #Then increase in juvenile catch as a percentage is 
-chmjuvsstart / juv0 #0.398563
-
-sessionInfo()
+chmjuvsstart / juv0 #0.3360998
