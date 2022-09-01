@@ -250,10 +250,3 @@ closed$season[closed$start>=as.POSIXct("2019-11-07 00:00:00 -05") &
                 closed$start <= as.POSIXct("2020-01-14 23:59:59 -05")] <- "s2_2019"
 
 save(closed, file = "Output/Data/closed.Rdata")
-
-#What percent of closures start at 6 AM?
-closed$six <- 0
-closed$six[grep("\\.25",closed$start_raw)] <- 1
-mean(closed$six) # 0.06867846
-
-sessionInfo()
