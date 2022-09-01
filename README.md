@@ -1,7 +1,7 @@
 ---
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 # Replication files for "Information and Spillovers from Targeting Policy in Peru's Anchoveta Fishery"
 
