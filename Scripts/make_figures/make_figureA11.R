@@ -5,13 +5,14 @@ Sys.setenv(TZ='America/Lima')
 
 library(dplyr); library(ggplot2); library(sf)
 library(lubridate); library(Formula)
-library(purrr); library(parallel); library(lfe)
+library(purrr); library(parallel); library(fixest)
 library(cowplot); library(latex2exp)
 
 #Turn off spherical geometry since I wrote these scripts before sf v1
 sf::sf_use_s2(FALSE) 
 
-options(lfe.threads=12)
+#Set cores to use in regression
+setFixest_nthreads(0.9) #Use 90% of cores available
 
 myThemeStuff <- theme(panel.background = element_blank(),
                       panel.border = element_blank(),
@@ -1070,6 +1071,7 @@ useseason <- "s2_2019"
      timevec, myclosed, mybe, myoutcome, treatlist, twowk, i, counter)
 }
 
+
 #Load and bind data from each season
 load("Output/TempData/rasterjuv_s1_2017.Rdata")
 regdf <- paneldf
@@ -1093,21 +1095,25 @@ regdf$twoweek_cellid_2p <- as.factor(regdf$twoweek_cellid_2p)
 
 regdf <- mutate(regdf, asinhnummjuv = asinh(nummjuv))
 
-formlfe <- as.Formula(paste0(
+nrow(regdf) #95416620
+
+myform <- as.Formula(paste0(
   "asinhnummjuv", "~ ", 
   paste0(grep("lead_|active_|lag",names(regdf),value=T),collapse="+"),
-  " | lon_centr:lat_centr + threehour + twoweek_cellid_2p | 0 | twoweek_cellid_2p"))
+  " | lon_centr^lat_centr + threehour + twoweek_cellid_2p"
+  ))
 
-juvcatch <- felm(formlfe, data=regdf)
+juvcatch <- feols(fml = myform, data = regdf, 
+                  vcov = ~twoweek_cellid_2p)
 
 #Plot treatment coefficients and standard errors
-jvtab <- summary(juvcatch)[["coefficients"]]
+jvtab <- juvcatch[["coeftable"]]
 
 jvtab <- mutate(as.data.frame(jvtab), bin = rownames(jvtab))
 
 jvtab <- dplyr::select(jvtab, -`t value`, -`Pr(>|t|)`)
 
-jvtab <- rename(jvtab, rasterjuv = Estimate, rasterjuvse = `Cluster s.e.`)
+jvtab <- rename(jvtab, rasterjuv = Estimate, rasterjuvse = `Std. Error`)
 
 #Confidence intervals
 jvtab <- mutate(jvtab, rasterjuv_ub = rasterjuv + rasterjuvse*qnorm(.975), 
