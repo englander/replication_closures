@@ -1,8 +1,3 @@
----
-output:
-  html_document: default
-  pdf_document: default
----
 # Replication files for "Information and Spillovers from Targeting Policy in Peru's Anchoveta Fishery"
 
 DOI: https://doi.org/10.5281/zenodo.7041706
