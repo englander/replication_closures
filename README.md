@@ -1,6 +1,11 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 # Replication files for "Information and Spillovers from Targeting Policy in Peru's Anchoveta Fishery"
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.7041707.svg)](https://doi.org/10.5281/zenodo.7041707)
+DOI: https://doi.org/10.5281/zenodo.7041706
 
 ## Data and Code Availability Statement
 
@@ -27,15 +32,15 @@ The paper uses public, non-confidential population-level length distribution dat
 
 -Necessary disk space: 2 GB
 
--Wall clock-time: 920 hours. 900 hours for Scripts/make_data/7. make_data_figA13.R, and 20 hours for all other scripts. If you don't want to run Scripts/make_data/7. make_data_figA13.R, you may skip to make_figureA13.R since I provide the data necessary for creating Figure A13 in Output/Data/data_figA13.Rdata. 
+-Wall clock-time: 84 hours. 64 hours for Scripts/make_data/7. make_data_figA13.R, and 20 hours for all other scripts. If you don't want to run Scripts/make_data/7. make_data_figA13.R, you may skip to make_figureA13.R since I provide the data necessary for creating Figure A13 in Output/Data/data_figA13.Rdata. 
 
 ## Instructions for Data Preparation and Analysis
 
-###Getting the replication files
+### Downloading and opening the replication files
 
 If you are cloning the repository from Github (https://github.com/englander/replication_closures), open RStudio, click File -> New Project -> Version Control -> Git, paste "https://github.com/englander/replication_closures.git", and click Create Project. If you downloaded the replication files as a zip file, extract them, open RStudio, click File -> Open Project, find replication_closures.Rproj, and click Open. 
 
-###Installing specific package versions
+### Installing specific package versions
 
 First, run Scripts/RUN THIS FIRST.R. That script will install all R packages you need. It installs the same package versions I used to facilitate reproducibility. 
 
