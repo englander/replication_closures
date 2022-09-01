@@ -444,6 +444,16 @@
         "vctrs"
       ]
     },
+    "dreamerr": {
+      "Package": "dreamerr",
+      "Version": "1.2.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "5b31f43f60613477ee28abec9ab07f1b",
+      "Requirements": [
+        "Formula"
+      ]
+    },
     "e1071": {
       "Package": "e1071",
       "Version": "1.7-7",
@@ -509,6 +519,20 @@
         "maps",
         "spam",
         "viridis"
+      ]
+    },
+    "fixest": {
+      "Package": "fixest",
+      "Version": "0.10.4",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "c88e57859a11d0a184d8ed454e45222d",
+      "Requirements": [
+        "Rcpp",
+        "dreamerr",
+        "nlme",
+        "numDeriv",
+        "sandwich"
       ]
     },
     "foreach": {
