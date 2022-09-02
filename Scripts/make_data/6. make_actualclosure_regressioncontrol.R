@@ -453,6 +453,4 @@ regdf <- bind_rows(
          id = as.character(id))
 )
 
-#Clean up; just want to keep regdf
-rm(closed, fullbe, myoutcomes, rddf, applyBufFun_closed, BufFun_closed,
-   closedControls, outcomesFun)
+save(regdf, file = "Output/TempData/actualclosure_regressioncontrol.Rdata")
