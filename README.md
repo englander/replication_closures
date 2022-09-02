@@ -27,7 +27,7 @@ The paper uses public, non-confidential population-level length distribution dat
 
 -Necessary disk space: 2 GB
 
--Wall clock-time: 84 hours. 64 hours for Scripts/make_data/7. make_data_figA13.R, and 20 hours for all other scripts. If you don't want to run Scripts/make_data/7. make_data_figA13.R, you may skip to make_figureA13.R since I provide the data necessary for creating Figure A13 in Output/Data/data_figA13.Rdata. 
+-Wall clock-time: 83.5+A11 hours. 64 hours for Scripts/make_data/7. make_data_figA13.R, and 19.5+A11 hours for all other scripts. If you don't want to run Scripts/make_data/7. make_data_figA13.R, you may skip to make_figureA13.R since I provide the data necessary for creating Figure A13 in Output/Data/data_figA13.Rdata. 
 
 ## Instructions for Data Preparation and Analysis
 
@@ -53,6 +53,6 @@ Scripts/make_figures folder contains the scripts that make all figures in the pa
 
 Scripts/make_tables folder contains the scripts that make all tables in the paper. Scripts are named by the table(s) they create. The combined runtime for all make_tables scripts is 4 hours.
 
-Files in Scripts/other_empirics folder contain calculations that are described in the paper but which do not produce a table or figure. The combined runtime for all other_empirics scripts is INSERT hours.
+Files in Scripts/other_empirics folder contain calculations that are described in the paper but which do not produce a table or figure. The combined runtime for all other_empirics scripts is 5.5 hours.
 
 
