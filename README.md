@@ -45,7 +45,7 @@ Run the scripts in Scripts/make_data folder in numeric order, starting with 0. m
 
 After running 4. make_rddf.R, you will have created the data necessary to create all tables, Figures 1-7, Figures A1-A11, Figures B1-B2, Figures C1-C2, and Figure E1. After running 5. make_fleetthere_selfthere.R, you will have created the data necessary to create Figures 8 and 9. Figure A12 requires running 6. make_actualclosure_regressioncontrol.R, and Figure A13 requires running 6. make_actualclosure_regressioncontrol.R and 7. make_data_figA13.R. 
 
-Note that 7. make_data_figA13.R requires 64 hours with 14 cores. The other scripts are much faster. I provide output from all make_data scripts in Output/Data folder. So if you want to skip the data preparation stage, and go right to reproducing tables and figures, you may do so.
+Note that 7. make_data_figA13.R requires 64 hours with 14 cores. The combined runtime of all other make_data scripts is five hours. I provide output from all make_data scripts in Output/Data folder. So if you want to skip the data preparation stage, and go right to reproducing tables and figures, you may do so. The only exception is Figure A12. Due to the size of the data used to create Figure A12, you must run 6. make_actualclosure_regressioncontrol.R on your machine to create Output/TempData/actualclosure_regressioncontrol.Rdata. Because of data provided in Output/Data folder, you could run 6. make_actualclosure_regressioncontrol.R without running the preceding make_data scripts.
 
 ### Analysis
 
