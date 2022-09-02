@@ -41,7 +41,7 @@ First, run Scripts/RUN THIS FIRST.R. That script will install all R packages you
 
 ### Data preparation
 
-Run the scripts in Scripts/make_data folder in numeric order, starting with 0. make_closures_df.R. 
+Run the scripts in Scripts/make_data folder in numeric order, starting with 0. make_closures_df.R. Scripts 0 to 6 take 5 hours to run in total. Script 7 takes 64 hours.
 
 After running 4. make_rddf.R, you will have created the data necessary to create all tables, Figures 1-7, Figures A1-A11, Figures B1-B2, Figures C1-C2, and Figure E1. After running 5. make_fleetthere_selfthere.R, you will have created the data necessary to create Figures 8 and 9. Figure A12 requires running 6. make_actualclosure_regressioncontrol.R, and Figure A13 requires running 6. make_actualclosure_regressioncontrol.R and 7. make_data_figA13.R. 
 
@@ -49,7 +49,7 @@ Note that 7. make_data_figA13.R requires 64 hours with 14 cores. The combined ru
 
 ### Analysis
 
-Scripts/make_figures folder contains the scripts that make all figures in the paper. Scripts are named by the figure(s) they create.
+Scripts/make_figures folder contains the scripts that make all figures in the paper. Scripts are named by the figure(s) they create. The combined runtime for all make_figures scripts, excluding make_figureA11.R, is 5 hours. The runtime for make_figureA11.R is INSERT.
 
 Scripts/make_tables folder contains the scripts that make all tables in the paper. Scripts are named by the table(s) they create. 
 
