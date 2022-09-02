@@ -181,7 +181,7 @@ rm(fullbe)
 #Create .05 degree grid
 #Load peru EEZ. Downloaded from https://www.marineregions.org/downloads.php on July 2, 2018.
 #Version 2 - 2012 (4.96 MB) [Known issues] (created from EEZ version 7)
-eez <- st_read("C:/Users/englander/Box Sync/VMS/Data/Intersect_IHO_EEZ_v2_2012/eez.shp") %>%
+eez <- st_read("Data/Intersect_IHO_EEZ_v2_2012/eez.shp") %>%
   filter(EEZ == "Peruvian Exclusive Economic Zone (disputed - Peruvian point of view)")
 
 grid <- st_make_grid(st_bbox(eez), cellsize = .05, what = 'polygons') %>%
