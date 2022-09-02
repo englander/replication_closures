@@ -51,8 +51,8 @@ Note that 7. make_data_figA13.R requires 64 hours with 14 cores. The combined ru
 
 Scripts/make_figures folder contains the scripts that make all figures in the paper. Scripts are named by the figure(s) they create. The combined runtime for all make_figures scripts, excluding make_figureA11.R, is 5 hours. The runtime for make_figureA11.R is INSERT.
 
-Scripts/make_tables folder contains the scripts that make all tables in the paper. Scripts are named by the table(s) they create. 
+Scripts/make_tables folder contains the scripts that make all tables in the paper. Scripts are named by the table(s) they create. The combined runtime for all make_tables scripts is 4 hours.
 
-Files in Scripts/other_empirics folder contain calculations that are described in the paper but which do not produce a table or figure.
+Files in Scripts/other_empirics folder contain calculations that are described in the paper but which do not produce a table or figure. The combined runtime for all other_empirics scripts is INSERT hours.
 
 
