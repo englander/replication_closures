@@ -368,18 +368,26 @@ pre code {
 <div id="replication-files-for-information-and-spillovers-from-targeting-policy-in-perus-anchoveta-fishery" class="section level1">
 <h1>Replication files for “Information and Spillovers from Targeting
 Policy in Peru’s Anchoveta Fishery”</h1>
-<p>DOI: <a href="https://doi.org/10.5281/zenodo.7041706" class="uri">https://doi.org/10.5281/zenodo.7041706</a></p>
+<p>Gabriel Englander. American Economic Journal: Economic Policy.</p>
+<p>DOI: <a href="https://doi.org/10.5281/zenodo.7041706" class="uri">https://doi.org/10.5281/zenodo.7041706</a> (Note: This DOI
+is different from the DOI in the References section of the paper. That
+is because Zenodo only creates a DOI after I issue a release. The paper
+contains the final, publication-ready release DOI. The DOI I include
+here, 10.5281/zenodo.7041706, takes you to the newest release. So even
+though the two DOI are different, they take you to the same, final
+release version).</p>
 <div id="data-and-code-availability-statement" class="section level2">
 <h2>Data and Code Availability Statement</h2>
-<p>The paper uses public, non-confidential data from Peru’s Ministry of
-Production (PRODUCE). The archive contains the data in the folder
+<p>The paper uses public, non-confidential data from Peru’s Ministerio
+de la Producción (PRODUCE). The archive contains the data in the folder
 “Data/”. The files from PRODUCE are BE_2017to2019_allvessels.xlsx,
 landings_2017to2019.xlsx, closures_2014to2019.xlsx, and owndf.csv.
 BE_2017to2019_allvessels.xlsx are the Bitácora Electrónica data for all
 vessels, landings_2017to2019.xlsx are the landings data for all vessels,
 closures_2014to2019.xslx are the temporary spatial closures that PRODUCE
-declared between 2014 and 2019, and owndf.csv are ownership information
-and vessel characteristics for all vessels.</p>
+declared between 2014 and 2019 (I only use those between 2017 and 2019
+in the analysis), and owndf.csv are ownership information and vessel
+characteristics for all vessels.</p>
 <p>The paper uses public, non-confidential data from Sociedad Nacional
 de Pesquería (SNP). The archive contains the data in the folder “Data/”.
 The file from SNP is bedat_snp.csv. This file contains Bitácora
@@ -410,12 +418,13 @@ will be longer.</p>
 <p>-Memory: 128 GB. You can run most scripts with as little as 4 GB of
 memory though. A few scripts will require 128 GB of memory though, such
 as Scripts/make_figures/make_figureA11.R.</p>
-<p>-Necessary disk space: 2 GB</p>
-<p>-Wall clock-time: 83.5+A11 hours. 64 hours for Scripts/make_data/7.
-make_data_figA13.R, and 19.5+A11 hours for all other scripts. If you
-don’t want to run Scripts/make_data/7. make_data_figA13.R, you may skip
-to make_figureA13.R since I provide the data necessary for creating
-Figure A13 in Output/Data/data_figA13.Rdata.</p>
+<p>-Necessary disk space: 3 GB</p>
+<p>-Wall clock-time: 92 hours. 64 hours for Scripts/make_data/7.
+make_data_figA13.R, 8.5 hours for Scripts/make_figures/make_figureA11.R,
+and 19.5 hours for all other scripts. If you don’t want to run
+Scripts/make_data/7. make_data_figA13.R, you may skip to
+make_figureA13.R since I provide the data necessary for creating Figure
+A13 in Output/Data/data_figA13.Rdata.</p>
 </div>
 <div id="instructions-for-data-preparation-and-analysis" class="section level2">
 <h2>Instructions for Data Preparation and Analysis</h2>
@@ -426,7 +435,8 @@ RStudio, click File -&gt; New Project -&gt; Version Control -&gt; Git,
 paste “<a href="https://github.com/englander/replication_closures.git" class="uri">https://github.com/englander/replication_closures.git</a>”,
 and click Create Project. If you downloaded the replication files as a
 zip file, extract them, open RStudio, click File -&gt; Open Project,
-find replication_closures.Rproj, and click Open.</p>
+find replication_closures.Rproj among the files on your computer, and
+click Open.</p>
 </div>
 <div id="installing-specific-package-versions" class="section level3">
 <h3>Installing specific package versions</h3>
@@ -452,7 +462,7 @@ output from all make_data scripts in Output/Data folder. So if you want
 to skip the data preparation stage, and go right to reproducing tables
 and figures, you may do so. The only exception is Figure A12. Due to the
 size of the data used to create Figure A12, you must run 6.
-make_actualclosure_regressioncontrol.R on your machine to create
+make_actualclosure_regressioncontrol.R on your computer to create
 Output/TempData/actualclosure_regressioncontrol.Rdata. Because of data
 provided in Output/Data folder, you could run 6.
 make_actualclosure_regressioncontrol.R without running the preceding
@@ -463,8 +473,8 @@ make_data scripts.</p>
 <p>Scripts/make_figures folder contains the scripts that make all
 figures in the paper. Scripts are named by the figure(s) they create.
 The combined runtime for all make_figures scripts, excluding
-make_figureA11.R, is 5 hours. The runtime for make_figureA11.R is
-INSERT.</p>
+make_figureA11.R, is 5 hours. The runtime for make_figureA11.R is 8.5
+hours.</p>
 <p>Scripts/make_tables folder contains the scripts that make all tables
 in the paper. Scripts are named by the table(s) they create. The
 combined runtime for all make_tables scripts is 4 hours.</p>
