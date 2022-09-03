@@ -1,8 +1,3 @@
----
-output:
-  pdf_document: default
-  html_document: default
----
 # Replication files for "Information and Spillovers from Targeting Policy in Peru's Anchoveta Fishery"
 
 Gabriel Englander. American Economic Journal: Economic Policy.
