@@ -29,7 +29,7 @@ The paper uses public, non-confidential population-level length distribution dat
 
 -Necessary disk space: 3 GB
 
--Wall clock-time: 92 hours. 64 hours for Scripts/make_data/7. make_data_figA13.R, 8.5 hours for Scripts/make_figures/make_figureA11.R, and 19.5 hours for all other scripts. If you don't want to run Scripts/make_data/7. make_data_figA13.R, you may skip to make_figureA13.R since I provide the data necessary for creating Figure A13 in Output/Data/data_figA13.Rdata. 
+-Wall clock-time: 86 hours. 64 hours for Scripts/make_data/7. make_data_figA13.R and 22 hours for all other scripts. If you don't want to run Scripts/make_data/7. make_data_figA13.R, you may skip to make_figureA13.R since I provide the data necessary for creating Figure A13 in Output/Data/data_figA13.Rdata. 
 
 ## Instructions for Data Preparation and Analysis
 
@@ -51,7 +51,7 @@ Note that 7. make_data_figA13.R requires 64 hours with 14 cores. The combined ru
 
 ### Analysis
 
-Scripts/make_figures folder contains the scripts that make all figures in the paper. Scripts are named by the figure(s) they create. The combined runtime for all make_figures scripts, excluding make_figureA11.R, is 5 hours. The runtime for make_figureA11.R is 8.5 hours.
+Scripts/make_figures folder contains the scripts that make all figures in the paper. Scripts are named by the figure(s) they create. The combined runtime for all make_figures scripts, excluding make_figureA11.R, is 5 hours. The runtime for make_figureA11.R is 2.5 hours.
 
 Scripts/make_tables folder contains the scripts that make all tables in the paper. Scripts are named by the table(s) they create. The combined runtime for all make_tables scripts is 4 hours.
 
