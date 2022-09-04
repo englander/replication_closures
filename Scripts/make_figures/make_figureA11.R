@@ -6,7 +6,8 @@ Sys.setenv(TZ='America/Lima')
 library(dplyr); library(ggplot2); library(sf)
 library(lubridate); library(Formula)
 library(purrr); library(parallel); library(fixest)
-library(cowplot); library(latex2exp)
+library(cowplot); library(latex2exp); library(collapse)
+library(furrr)
 
 #Turn off spherical geometry since I wrote these scripts before sf v1
 sf::sf_use_s2(FALSE) 
@@ -102,7 +103,7 @@ applyBufFun_closed <- function(bmin, bmax){
     BufFun_closed(x, bmin, bmax)
   })
   
-  out <- do.call("rbind",out)
+  out <- bind_rows(out)
   
   return(out)
 }
@@ -110,7 +111,7 @@ applyBufFun_closed <- function(bmin, bmax){
 #Apply over all buffers
 (myCores <- detectCores())
 
-cl <- makeCluster(12)
+cl <- makeCluster(14)
 
 clusterExport(cl, "closed")
 clusterExport(cl, "BufFun_closed")
@@ -129,20 +130,20 @@ cbufs <- parLapply(cl=cl,
 stopCluster(cl)
 rm(cl, myCores)
 
-cbufs <- do.call("rbind",cbufs)
+cbufs <- bind_rows(cbufs)
 
 names(cbufs)[names(cbufs)!="geometry"] <- names(closed)[names(closed)!="geometry"]
 
-closed <- rbind(closed, cbufs)
+closed <- bind_rows(closed, cbufs)
 
 rm(cbufs)
 
 
 #Duplicate rectangles for leads and lags
-closed <- rbind(
+closed <- bind_rows(
   closed,
   #Preperiod is 9 hours before if begins at midnight; 12 hours before if begins at 6 am
-  rbind(
+  bind_rows(
     filter(closed, six==0) %>% mutate(end=start-1) %>% 
       mutate(start=start-9*3600,tvar="lead"),
     filter(closed, six==1) %>% mutate(end=start-1) %>% 
@@ -178,13 +179,13 @@ besf <- mutate(besf, season = paste0(ifelse(nchar(Temporada)==6,"s1_","s2_"),sub
 
 rm(fullbe)
 
-#Create .05 degree grid
+#Create .1 degree grid
 #Load peru EEZ. Downloaded from https://www.marineregions.org/downloads.php on July 2, 2018.
 #Version 2 - 2012 (4.96 MB) [Known issues] (created from EEZ version 7)
 eez <- st_read("Data/Intersect_IHO_EEZ_v2_2012/eez.shp") %>%
   filter(EEZ == "Peruvian Exclusive Economic Zone (disputed - Peruvian point of view)")
 
-grid <- st_make_grid(st_bbox(eez), cellsize = .05, what = 'polygons') %>%
+grid <- st_make_grid(st_bbox(eez), cellsize = .1, what = 'polygons') %>%
   st_sf()
 
 #Keep only grid cells that intersect eez
@@ -261,7 +262,7 @@ smallTreat <- function(centrrow, threeclosed_nosf, inter, centr_nosf, mythree){
 treatThree <- function(mythree){
   
   #Filter myclosed to this time period
-  threeclosed <- filter(myclosed, start <= (mythree + 3600*3) & 
+  threeclosed <- fsubset(myclosed, start <= (mythree + 3600*3) & 
                           mythree <= end)
   
   #Cells in treatment window
@@ -322,7 +323,7 @@ inter <- as.numeric(as.character(inter))
 
 mybe <- mutate(mybe, gridcellrow = inter)
 
-#Get coordinates of centroid for .05 degree grid cell
+#Get coordinates of centroid for .1 degree grid cell
 mybe <- left_join(mybe, 
                   as.data.frame(grid) %>% dplyr::select(-geometry),
                   by = 'gridcellrow')
@@ -339,29 +340,11 @@ rm(inter)
 
 #Calculate treatment fraction for each grid-time
 #Apply over all buffers
-(myCores <- detectCores())
+plan(multisession, workers = 15)
 
-cl <- makeCluster(12)
-
-clusterExport(cl, "timevec")
-clusterExport(cl, "myclosed")
-clusterExport(cl, "centr")
-clusterExport(cl, "smallTreat")
-clusterExport(cl, "treatThree")
-clusterExport(cl, "fillinds")
-clusterEvalQ(cl, library(dplyr))
-clusterEvalQ(cl, library(sf))
-clusterEvalQ(cl, library(purrr))
-clusterEvalQ(cl, library(lubridate))
-
-
-treatlist <- parLapply(cl=cl,
-                      timevec, function(x){
+treatlist <- future_map(timevec, function(x){
                      treatThree(x)
                    })
-
-stopCluster(cl)
-rm(cl, myCores)
 
 paneldf <- bind_rows(treatlist)
 
@@ -451,7 +434,7 @@ useseason <- "s2_2017"
   
   mybe <- mutate(mybe, gridcellrow = inter)
   
-  #Get coordinates of centroid for .05 degree grid cell
+  #Get coordinates of centroid for .1 degree grid cell
   mybe <- left_join(mybe, 
                     as.data.frame(grid) %>% dplyr::select(-geometry),
                     by = 'gridcellrow')
@@ -468,29 +451,11 @@ useseason <- "s2_2017"
   
   #Calculate treatment fraction for each grid-time
   #Apply over all buffers
-  (myCores <- detectCores())
+  plan(multisession, workers = 15)
   
-  cl <- makeCluster(12)
-  
-  clusterExport(cl, "timevec")
-  clusterExport(cl, "myclosed")
-  clusterExport(cl, "centr")
-  clusterExport(cl, "smallTreat")
-  clusterExport(cl, "treatThree")
-  clusterExport(cl, "fillinds")
-  clusterEvalQ(cl, library(dplyr))
-  clusterEvalQ(cl, library(sf))
-  clusterEvalQ(cl, library(purrr))
-  clusterEvalQ(cl, library(lubridate))
-  
-  
-  treatlist <- parLapply(cl=cl,
-                         timevec, function(x){
-                           treatThree(x)
-                         })
-  
-  stopCluster(cl)
-  rm(cl, myCores)
+  treatlist <- future_map(timevec, function(x){
+    treatThree(x)
+  })
   
   paneldf <- bind_rows(treatlist)
   
@@ -580,7 +545,7 @@ useseason <- "s1_2018"
   
   mybe <- mutate(mybe, gridcellrow = inter)
   
-  #Get coordinates of centroid for .05 degree grid cell
+  #Get coordinates of centroid for .1 degree grid cell
   mybe <- left_join(mybe, 
                     as.data.frame(grid) %>% dplyr::select(-geometry),
                     by = 'gridcellrow')
@@ -597,29 +562,11 @@ useseason <- "s1_2018"
   
   #Calculate treatment fraction for each grid-time
   #Apply over all buffers
-  (myCores <- detectCores())
+  plan(multisession, workers = 15)
   
-  cl <- makeCluster(12)
-  
-  clusterExport(cl, "timevec")
-  clusterExport(cl, "myclosed")
-  clusterExport(cl, "centr")
-  clusterExport(cl, "smallTreat")
-  clusterExport(cl, "treatThree")
-  clusterExport(cl, "fillinds")
-  clusterEvalQ(cl, library(dplyr))
-  clusterEvalQ(cl, library(sf))
-  clusterEvalQ(cl, library(purrr))
-  clusterEvalQ(cl, library(lubridate))
-  
-  
-  treatlist <- parLapply(cl=cl,
-                         timevec, function(x){
-                           treatThree(x)
-                         })
-  
-  stopCluster(cl)
-  rm(cl, myCores)
+  treatlist <- future_map(timevec, function(x){
+    treatThree(x)
+  })
   
   paneldf <- bind_rows(treatlist)
   
@@ -709,7 +656,7 @@ useseason <- "s2_2018"
   
   mybe <- mutate(mybe, gridcellrow = inter)
   
-  #Get coordinates of centroid for .05 degree grid cell
+  #Get coordinates of centroid for .1 degree grid cell
   mybe <- left_join(mybe, 
                     as.data.frame(grid) %>% dplyr::select(-geometry),
                     by = 'gridcellrow')
@@ -726,29 +673,11 @@ useseason <- "s2_2018"
   
   #Calculate treatment fraction for each grid-time
   #Apply over all buffers
-  (myCores <- detectCores())
+  plan(multisession, workers = 15)
   
-  cl <- makeCluster(12)
-  
-  clusterExport(cl, "timevec")
-  clusterExport(cl, "myclosed")
-  clusterExport(cl, "centr")
-  clusterExport(cl, "smallTreat")
-  clusterExport(cl, "treatThree")
-  clusterExport(cl, "fillinds")
-  clusterEvalQ(cl, library(dplyr))
-  clusterEvalQ(cl, library(sf))
-  clusterEvalQ(cl, library(purrr))
-  clusterEvalQ(cl, library(lubridate))
-  
-  
-  treatlist <- parLapply(cl=cl,
-                         timevec, function(x){
-                           treatThree(x)
-                         })
-  
-  stopCluster(cl)
-  rm(cl, myCores)
+  treatlist <- future_map(timevec, function(x){
+    treatThree(x)
+  })
   
   paneldf <- bind_rows(treatlist)
   
@@ -838,7 +767,7 @@ useseason <- "s1_2019"
   
   mybe <- mutate(mybe, gridcellrow = inter)
   
-  #Get coordinates of centroid for .05 degree grid cell
+  #Get coordinates of centroid for .1 degree grid cell
   mybe <- left_join(mybe, 
                     as.data.frame(grid) %>% dplyr::select(-geometry),
                     by = 'gridcellrow')
@@ -855,29 +784,11 @@ useseason <- "s1_2019"
   
   #Calculate treatment fraction for each grid-time
   #Apply over all buffers
-  (myCores <- detectCores())
+  plan(multisession, workers = 15)
   
-  cl <- makeCluster(12)
-  
-  clusterExport(cl, "timevec")
-  clusterExport(cl, "myclosed")
-  clusterExport(cl, "centr")
-  clusterExport(cl, "smallTreat")
-  clusterExport(cl, "treatThree")
-  clusterExport(cl, "fillinds")
-  clusterEvalQ(cl, library(dplyr))
-  clusterEvalQ(cl, library(sf))
-  clusterEvalQ(cl, library(purrr))
-  clusterEvalQ(cl, library(lubridate))
-  
-  
-  treatlist <- parLapply(cl=cl,
-                         timevec, function(x){
-                           treatThree(x)
-                         })
-  
-  stopCluster(cl)
-  rm(cl, myCores)
+  treatlist <- future_map(timevec, function(x){
+    treatThree(x)
+  })
   
   paneldf <- bind_rows(treatlist)
   
@@ -967,7 +878,7 @@ useseason <- "s2_2019"
   
   mybe <- mutate(mybe, gridcellrow = inter)
   
-  #Get coordinates of centroid for .05 degree grid cell
+  #Get coordinates of centroid for .1 degree grid cell
   mybe <- left_join(mybe, 
                     as.data.frame(grid) %>% dplyr::select(-geometry),
                     by = 'gridcellrow')
@@ -984,29 +895,11 @@ useseason <- "s2_2019"
   
   #Calculate treatment fraction for each grid-time
   #Apply over all buffers
-  (myCores <- detectCores())
+  plan(multisession, workers = 15)
   
-  cl <- makeCluster(12)
-  
-  clusterExport(cl, "timevec")
-  clusterExport(cl, "myclosed")
-  clusterExport(cl, "centr")
-  clusterExport(cl, "smallTreat")
-  clusterExport(cl, "treatThree")
-  clusterExport(cl, "fillinds")
-  clusterEvalQ(cl, library(dplyr))
-  clusterEvalQ(cl, library(sf))
-  clusterEvalQ(cl, library(purrr))
-  clusterEvalQ(cl, library(lubridate))
-  
-  
-  treatlist <- parLapply(cl=cl,
-                         timevec, function(x){
-                           treatThree(x)
-                         })
-  
-  stopCluster(cl)
-  rm(cl, myCores)
+  treatlist <- future_map(timevec, function(x){
+    treatThree(x)
+  })
   
   paneldf <- bind_rows(treatlist)
   
@@ -1088,14 +981,9 @@ for(i in loadvec){
 
 rm(i, paneldf, loadvec)
 
-regdf$lon_centr <- as.factor(regdf$lon_centr)
-regdf$lat_centr <- as.factor(regdf$lat_centr)
-regdf$threehour <- as.factor(regdf$threehour)
-regdf$twoweek_cellid_2p <- as.factor(regdf$twoweek_cellid_2p)
-
 regdf <- mutate(regdf, asinhnummjuv = asinh(nummjuv))
 
-nrow(regdf) #95416620
+nrow(regdf) #24392790
 
 myform <- as.Formula(paste0(
   "asinhnummjuv", "~ ", 
