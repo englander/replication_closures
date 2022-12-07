@@ -11,3 +11,10 @@ if(Sys.info()["sysname"] == "Windows"){
 
 renv::restore()
 #If R asks whether you want to "activate", enter Y into the console
+
+#If renv::restore() fails, check whether the Rtools package is installed on your computer.
+#(If running library(Rtools) results in an error, the Rtools package is not installed)
+#If Rtools is not installed, install it by running install.packages('Rtools') in the console and then re-running
+#renv::restore()
+#I was able to run renv::restore() successfully on another computer without Rtools, but a third-party replicator
+#found that Rtools was necessary for them.
