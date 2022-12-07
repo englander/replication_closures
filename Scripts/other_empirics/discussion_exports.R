@@ -156,5 +156,7 @@ actualtons - projtons
 
 
 #Or 77 (round to 75) million lower export revenues per year (1788500000 is 2017 USD export revenues)
-1788500000*((actualtons - projtons) / projtons) * 2 #two fishing seasons
+difftons <- 1788500000*((actualtons - projtons) / projtons) * 2 #two fishing seasons
 #This is going to be an underestimate because does not account for greater reproduction of stock
+
+save(difftons, file = 'Output/TempData/change_tons_exports.Rdata')
