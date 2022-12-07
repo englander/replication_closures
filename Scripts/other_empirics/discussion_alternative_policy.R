@@ -136,6 +136,6 @@ juv1 <- (sum(fullbe$numjuv, na.rm=T) / 10^6)
 juv0 <- juv1 + alteffect #closures policy + (no closures policy + adult policy = alteffect)
 
 #Adult policy and no closures policy would decrease juvenile catch by 52% relative to status quo closures policy
-(juv0 - juv1) / juv1
+change_juv_alternative <- (juv0 - juv1) / juv1; save(change_juv_alternative, file = "Output/TempData/change_juv_catch_alternative_policy.Rdata")
 
 
