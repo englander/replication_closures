@@ -391,8 +391,8 @@ effectLength(1) %>% dplyr::select(chmjuvsstart) %>% as.matrix() %>% as.numeric()
   )
 
 #What percent of juveniles are caught by above median vessels? 
-(sum(heterodf$numjuv[heterodf$abovemedian==1], na.rm=T) / 
-    sum(heterodf$numjuv, na.rm=T)) #0.8340564
+above_med_length_vessel_juv_frac <- (sum(heterodf$numjuv[heterodf$abovemedian==1], na.rm=T) / 
+    sum(heterodf$numjuv, na.rm=T)); save(above_med_length_vessel_juv_frac, file = 'Output/TempData/appendix_D2_above_med_length_vessel_juv_frac.Rdata')  #0.8340564
 
 #Cannot separate vessel size from fleet size because large vessels are owned by large firms
 #e.g. 96% of vessels owned by top 7 firms are above median length
