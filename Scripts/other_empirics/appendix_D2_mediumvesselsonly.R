@@ -404,7 +404,7 @@ effectLength(1)[[1]]
 
 ##From below, standard error on difference in percent change is 0.05732406
 #So the p-value on the difference is 0.0004653779
-(1 - pt((0.4454436 - 0.2448035) / 0.05732406, df = jvdf))*2
+hetero_med_pval <- (1 - pt((0.4454436 - 0.2448035) / 0.05732406, df = jvdf))*2; save(hetero_med_pval, file = "Output/TempData/appendix_D2_mediumvesselsonly_pval.Rdata") 
 
 
 
