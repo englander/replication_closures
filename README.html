@@ -365,9 +365,9 @@ pre code {
 </div>
 
 
-<div id="replication-files-for-information-and-spillovers-from-targeting-policy-in-perus-anchoveta-fishery" class="section level1">
-<h1>Replication files for “Information and Spillovers from Targeting
-Policy in Peru’s Anchoveta Fishery”</h1>
+<div id="data-and-code-for-information-and-spillovers-from-targeting-policy-in-perus-anchoveta-fishery" class="section level1">
+<h1>Data and Code for “Information and Spillovers from Targeting Policy
+in Peru’s Anchoveta Fishery”</h1>
 <p>Gabriel Englander. American Economic Journal: Economic Policy.</p>
 <p>DOI: <a href="https://doi.org/10.5281/zenodo.7041706" class="uri">https://doi.org/10.5281/zenodo.7041706</a> (Note: This DOI
 is different from the DOI in the References section of the paper. That
@@ -401,11 +401,136 @@ distribution data from Peru’s scientific agency (IMARPE, 2017). The
 archive contains the data in the folder “Data/”. The file from IMARPE is
 EvaluacionHidroacusticaRecPelagicosCrucero170304_march2017.jpg. This
 file is page 23 from their public report (IMARPE, 2017).</p>
+<div id="statement-about-rights" class="section level3">
+<h3>Statement about Rights</h3>
+<p>I certify that the author of the manuscript has legitimate access to
+and permission to use the data used in this manuscript.</p>
+</div>
+</div>
+<div id="dataset-list" class="section level2">
+<h2>Dataset list</h2>
+<table style="width:100%;">
+<colgroup>
+<col width="28%" />
+<col width="21%" />
+<col width="26%" />
+<col width="23%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Data file</th>
+<th>Source</th>
+<th>Notes</th>
+<th>Provided</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Data/BE_2017to2019_allvessels.xlsx</code></td>
+<td>PRODUCE</td>
+<td></td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td><code>Data/landings_2017to2019.xlsx</code></td>
+<td>PRODUCE</td>
+<td></td>
+<td>Yes</td>
+</tr>
+<tr class="odd">
+<td><code>Data/closures_2014to2019.xlsx</code></td>
+<td>PRODUCE</td>
+<td></td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td><code>Data/owndf.csv</code></td>
+<td>PRODUCE</td>
+<td></td>
+<td>Yes</td>
+</tr>
+<tr class="odd">
+<td><code>Data/bedat_snp.csv</code></td>
+<td>SNP</td>
+<td></td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td><code>Data/Intersect_IHO_EEZ_v2_2012</code></td>
+<td>Flanders Marine Institute (2012)</td>
+<td></td>
+<td>Yes</td>
+</tr>
+<tr class="odd">
+<td><code>Data/EvaluacionHidroacusticaRecPelagicosCrucero170304_march2017.jpg</code></td>
+<td>IMARPE (2017)</td>
+<td></td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td><code>Output/Data/closed.Rdata</code></td>
+<td>Created by Scripts/make_data/0. make_closures_df.R</td>
+<td></td>
+<td>Yes</td>
+</tr>
+<tr class="odd">
+<td><code>Output/Data/matched_be_landings_belevel.Rdata</code></td>
+<td>Created by Scripts/make_data/1. match_be_landings.R</td>
+<td></td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td><code>Output/Data/grid2p.Rdata</code></td>
+<td>Created by Scripts/make_data/1. match_be_landings.R</td>
+<td></td>
+<td>Yes</td>
+</tr>
+<tr class="odd">
+<td><code>Output/Data/pbe_imp_uncorrected.Rdata</code></td>
+<td>Created by Scripts/make_data/2. impute_size_be.R</td>
+<td></td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td><code>Output/Data/pbe_imp.Rdata</code></td>
+<td>Created by Scripts/make_data/3. correct_be.R</td>
+<td></td>
+<td>Yes</td>
+</tr>
+<tr class="odd">
+<td><code>Output/Data/rddf_10km_lead1tolag4_3dayrect.Rdata</code></td>
+<td>Created by Scripts/make_data/4. make_rddf.R</td>
+<td></td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td><code>Output/Data/fleetthere_selfthere.Rdata</code></td>
+<td>Created by Scripts/make_data/5. make_fleetthere_selfthere.R</td>
+<td></td>
+<td>Yes</td>
+</tr>
+<tr class="odd">
+<td><code>Output/TempData/prelim_data_figA13.Rdata</code></td>
+<td>Created by Scripts/make_data/7. make_data_figA13.R</td>
+<td></td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td><code>Output/Data/data_figA13.Rdata</code></td>
+<td>Created by Scripts/make_data/7. make_data_figA13.R</td>
+<td></td>
+<td>Yes</td>
+</tr>
+</tbody>
+</table>
 </div>
 <div id="computational-requirements" class="section level2">
 <h2>Computational Requirements</h2>
+<div id="software-requirements" class="section level3">
+<h3>Software Requirements</h3>
 <p>-Software: R. I used Version 4.1.2, but other versions should work
 too, especially those &gt;= 4.1.0.</p>
+<p>You may also need to install Rtools 4.0: <a href="https://cran.r-project.org/bin/windows/Rtools/rtools40.html" class="uri">https://cran.r-project.org/bin/windows/Rtools/rtools40.html</a></p>
 <p>-Packages: There are many of them. They are all recorded in renv.lock
 file. When you run Scripts/RUN THIS FIRST.R, the renv package will
 automatically install all of them.</p>
@@ -415,6 +540,15 @@ Linux, should work too.</p>
 processors). This is the equivalent of 16 cores. If you have fewer than
 16 cores, you will still be able to run the scripts, but your runtime
 will be longer.</p>
+</div>
+<div id="controlled-randomness" class="section level3">
+<h3>Controlled Randomness</h3>
+<p>-Random seed is set at line 71 of program
+Scripts/make_figures/make_figure6.R -Random seed is set at line 111 of
+program Scripts/make_figures/make_figureB1_figureB2.R</p>
+</div>
+<div id="memory-and-runtime-requirements" class="section level3">
+<h3>Memory and Runtime Requirements</h3>
 <p>-Memory: 128 GB. You can run most scripts with as little as 4 GB of
 memory though. A few scripts will require 128 GB of memory though, such
 as Scripts/make_figures/make_figureA11.R.</p>
@@ -425,8 +559,62 @@ to run Scripts/make_data/7. make_data_figA13.R, you may skip to
 make_figureA13.R since I provide the data necessary for creating Figure
 A13 in Output/Data/data_figA13.Rdata.</p>
 </div>
-<div id="instructions-for-data-preparation-and-analysis" class="section level2">
-<h2>Instructions for Data Preparation and Analysis</h2>
+</div>
+<div id="description-of-programscode" class="section level2">
+<h2>Description of programs/code</h2>
+<p>-Scripts/make_data/0. make_closures_df.R cleans closures data and
+creates Output/Data/closed.Rdata.</p>
+<p>-Scripts/make_data/1. match_be_landings.R matches Bitácora
+Electrónica data and landings data, creating
+matched_be_landings_belevel.Rdata.</p>
+<p>-Scripts/make_data/2. impute_size_be.R constructs an uncorrected
+length distribution for all sets in the Bitácora Electrónica data,
+creating pbe_imp_uncorrected.Rdata.</p>
+<p>-Scripts/make_data/3. correct_be.R corrects the Bitácora Electrónica
+data with the landings data, creating pbe_imp.Rdata.</p>
+<p>-Scripts/make_data/4. make_rddf.R creates the potential closures
+data, which serves as input for many of the analysis scripts. The
+potential closures data file it creates is
+rddf_10km_lead1tolag4_3dayrect.Rdata.</p>
+<p>-Scripts/make_data/5. make_fleetthere_selfthere.R creates the data
+necessary for creating Figures 8 and 9. The data file it creates is
+fleetthere_selfthere.Rdata.</p>
+<p>-Scripts/make_data/6. make_actualclosure_regressioncontrol.R creates
+the data necessary for creating Figure A12. The data file it creates is
+actualclosure_regressioncontrol.Rdata.</p>
+<p>-Scripts/make_data/7. make_data_figA13.R createsthe data necessary
+for creating Figure A13. The data file it creates is
+data_figA13.Rdata.</p>
+<p>-Scripts/make_figures/… create the figure(s) referenced in the script
+file name. For example, Scripts/make_figures/make_figure1_figure4.R
+creates Figures 1 and 4.</p>
+<p>-Scripts/make_tables/… create the table(s) referenced in the script
+file name. For example, Scripts/make_tables/make_table1.R creates Table
+1.</p>
+<p>-Scripts/other_empirics/appendix_C_robustness_length_distribution_imputation.R
+conducts a robustness check described in Appendix C. Instead of imputing
+length distribution of non-SNP sets at the two-week-of-sample by
+two-degree grid cell (as in the main specification of the paper), this
+script does so at the level of one-week-of-sample by
+one-degree-grid-cell. Then the script re-estimates the effect of the
+policy on juvenile catch.</p>
+<p>-Scripts/other_empirics/appendix_D1.R estimates heterogeneous
+treatment effects by size of closure and length of closure period.</p>
+<p>-Scripts/other_empirics/appendix_D2_firmsize.R estimates
+heterogeneous treatment effects by size of firm.</p>
+<p>-Scripts/other_empirics/appendix_D2_vesselsize.R estimates
+heterogeneous treatment effects by vessel size.</p>
+<p>-Scripts/other_empirics/appendix_D2_mediumvesselsonly.R estimates
+heterogeneous treatment effects by vessel size, among vessels owned by
+medium-sized firms.</p>
+<p>-Scripts/other_empirics/discussion_alternative_policy.R simulates the
+effect on juvenile catch of replacing the closures policy with an
+alternative policy.</p>
+<p>-Scripts/other_empirics/discussion_exports.R calculates the short-run
+effect of the policy on exports.</p>
+</div>
+<div id="instructions-to-replicators" class="section level2">
+<h2>Instructions to Replicators</h2>
 <div id="downloading-and-opening-the-replication-files" class="section level3">
 <h3>Downloading and opening the replication files</h3>
 <p>If you are cloning the repository from Github (<a href="https://github.com/englander/replication_closures" class="uri">https://github.com/englander/replication_closures</a>), open
@@ -481,6 +669,383 @@ combined runtime for all make_tables scripts is 4 hours.</p>
 described in the paper but which do not produce a table or figure. The
 combined runtime for all other_empirics scripts is 5.5 hours.</p>
 </div>
+</div>
+<div id="list-of-tables-and-programs" class="section level2">
+<h2>List of tables and programs</h2>
+<table>
+<colgroup>
+<col width="15%" />
+<col width="20%" />
+<col width="10%" />
+<col width="27%" />
+<col width="26%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Figure/Table #</th>
+<th>Program</th>
+<th>Line Number</th>
+<th>Output file</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Figure 1</td>
+<td>make_figures/make_figure1_figure4.R</td>
+<td>227</td>
+<td>figure1.pdf</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Figure 2</td>
+<td>make_figures/make_figure2.R</td>
+<td>153</td>
+<td>figure2.pdf</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Figure 3</td>
+<td>make_figures/make_figure3.R</td>
+<td>208</td>
+<td>figure3.pdf</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Figure 4</td>
+<td>make_figures/make_figure1_figure4.R</td>
+<td>284</td>
+<td>figure4.pdf</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Figure 5</td>
+<td>make_figures/make_figure5.R</td>
+<td>1085</td>
+<td>figure5.pdf</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Figure 6</td>
+<td>make_figures/make_figure6.R</td>
+<td>232</td>
+<td>figure6.pdf</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Table 1</td>
+<td>make_tables/make_table1.R</td>
+<td>482</td>
+<td>table1.tex</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Table 2</td>
+<td>make_tables/make_tableA1_table2.R</td>
+<td>309</td>
+<td>table2.tex</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Figure 7</td>
+<td>make_figures/make_figure7.R</td>
+<td>513</td>
+<td>figure7.pdf</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Table 3</td>
+<td>make_tables/make_table3.R</td>
+<td>281</td>
+<td>table3.tex</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Table 4</td>
+<td>make_tables/make_table4.R</td>
+<td>304</td>
+<td>table4.tex</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Figure 8</td>
+<td>make_figures/make_figure8_figure9.R</td>
+<td>753</td>
+<td>figure8.pdf</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Figure 9</td>
+<td>make_figures/make_figure8_figure9.R</td>
+<td>293</td>
+<td>figure9.pdf</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Figure A1</td>
+<td>make_figures/make_figureA1.R</td>
+<td>504</td>
+<td>figureA1.pdf</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Table A1</td>
+<td>make_tables/make_tableA1_table2.R</td>
+<td>259</td>
+<td>tableA1.tex</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Figure A2</td>
+<td>make_figures/make_figureA2_figureA3_figureA4_figureA5.R</td>
+<td>232</td>
+<td>figureA2.pdf</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Figure A3</td>
+<td>make_figures/make_figureA2_figureA3_figureA4_figureA5.R</td>
+<td>270</td>
+<td>figureA3.pdf</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Figure A4</td>
+<td>make_figures/make_figureA2_figureA3_figureA4_figureA5.R</td>
+<td>306</td>
+<td>figureA4.pdf</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Figure A5</td>
+<td>make_figures/make_figureA2_figureA3_figureA4_figureA5.R</td>
+<td>346</td>
+<td>figureA5.pdf</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Figure A6</td>
+<td>make_figures/make_figureA6.R</td>
+<td>232</td>
+<td>figureA6.pdf</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Figure A7</td>
+<td>make_figures/make_figureA7.R</td>
+<td>1667</td>
+<td>figureA7.pdf</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Figure A8</td>
+<td>make_figures/make_figureA8.R</td>
+<td>1667</td>
+<td>figureA8.pdf</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Figure A9</td>
+<td>make_figures/make_figureA9.R</td>
+<td>1786</td>
+<td>figureA9.pdf</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Figure A10</td>
+<td>make_figures/make_figureA10.R</td>
+<td>473</td>
+<td>figureA10.pdf</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Figure A11</td>
+<td>make_figures/make_figureA11.R</td>
+<td>1099</td>
+<td>figureA11.pdf</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Figure A12</td>
+<td>make_figures/make_figureA12.R</td>
+<td>238</td>
+<td>figureA12.pdf</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Figure A13</td>
+<td>make_figures/make_figureA13.R</td>
+<td>125</td>
+<td>figureA13.pdf</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Figure B1</td>
+<td>make_figures/make_figureB1_B2.R</td>
+<td>179</td>
+<td>figureB1.pdf</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Figure B2</td>
+<td>make_figures/make_figureB1_B2.R</td>
+<td>84</td>
+<td>figureB2.pdf</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Figure C1</td>
+<td>make_figures/make_figureC1.R</td>
+<td>225</td>
+<td>figureC1.pdf</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Figure C2</td>
+<td>make_figures/make_figureC2.R</td>
+<td>226</td>
+<td>figureC2.pdf</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Table D1</td>
+<td>make_tables/make_tableD1.R</td>
+<td>151</td>
+<td>tableD1.tex</td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>Table D2</td>
+<td>make_tables/make_tableD2.R</td>
+<td>105</td>
+<td>tableD2.tex</td>
+<td></td>
+</tr>
+<tr class="even">
+<td>Figure E1</td>
+<td>make_figures/make_figuree1.R</td>
+<td>767</td>
+<td>figuree1.pdf</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<table>
+<colgroup>
+<col width="15%" />
+<col width="20%" />
+<col width="10%" />
+<col width="27%" />
+<col width="26%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>In-text numbers #</th>
+<th>Program</th>
+<th>Line Number</th>
+<th>Output file</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>5.7%</td>
+<td>other_empirics/appendix_C_robustness_length_distribution_imputation.R</td>
+<td>3245</td>
+<td>TempData/appendix_C_onebyone_totperse.Rdata</td>
+<td>standard error on total percent change in juvenile catch when I
+impute length distribution at one-week-of-sample by one-degree grid cell
+level</td>
+</tr>
+<tr class="even">
+<td>0.18</td>
+<td>other_empirics/appendix_D1.R</td>
+<td>520</td>
+<td>TempData/appendix_D1_hetero_area_pval.Rdata</td>
+<td>p-value on heterogeneous treatment effect by closure area</td>
+</tr>
+<tr class="odd">
+<td>0.55</td>
+<td>other_empirics/appendix_D1.R</td>
+<td>779</td>
+<td>TempData/appendix_D1_hetero_days_pval.Rdata</td>
+<td>p-value on heterogeneous treatment effect by closure length</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="odd">
+<td>78%</td>
+<td>other_empirics/appendix_D2_firmsize.R</td>
+<td>403</td>
+<td>TempData/appendix_D2_largefirmeffect.Rdata</td>
+<td>% of treatment effect from large-firm vessels</td>
+</tr>
+<tr class="even">
+<td>70%</td>
+<td>other_empirics/appendix_D2_firmsize.R</td>
+<td>414</td>
+<td>TempData/appendix_D2_appendix_D2_juv_catch_fraction_by_firm_size.Rdata</td>
+<td>% of juveniles caught by large-firm vessels, as well as fraction
+caught by medium-firm and singleton vessels</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="even">
+<td>0.0005</td>
+<td>other_empirics/appendix_D2_mediumvesselsonly.R</td>
+<td>407</td>
+<td>TempData/appendix_D2_mediumvesselsonly_pval.Rdata</td>
+<td>p-value on heterogeneous treatment effect by vessel length, among
+medium-firm vessels only</td>
+</tr>
+<tr class="odd">
+<td>83%</td>
+<td>other_empirics/appendix_D2_vesselsize.R</td>
+<td>395</td>
+<td>TempData/appendix_D2_above_med_length_vessel_juv_frac.Rdata</td>
+<td>fraction of juvenile catch from above-median length vessels</td>
+</tr>
+<tr class="even">
+<td>-52%</td>
+<td>other_empirics/discussion_alternative_policy.R</td>
+<td>139</td>
+<td>TempData/change_juv_catch_alternative_policy.Rdata</td>
+<td>change in juvenile catch from replacing closures policy with an
+alternative</td>
+</tr>
+<tr class="odd">
+<td>$75 million</td>
+<td>other_empirics/discussion_exports.R</td>
+<td>162</td>
+<td>TempData/change_tons_exports.Rdata</td>
+<td>change in exports due to policy</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<p>Flanders Marine Institute. 2012. “Intersect of IHO Sea Areas and
+Exclusive Economic Zones (version 2).” <a href="http://www.marineregions.org" class="uri">http://www.marineregions.org</a>.</p>
+<p>IMARPE. 2017. “Informe ‘Evaluación Hidroacústica de Recursos
+Pelágicos’ Crucero 1703-04.” Instituto del Mar del Perú (IMARPE).</p>
 </div>
 </div>
 
