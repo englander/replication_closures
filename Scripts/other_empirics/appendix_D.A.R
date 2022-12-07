@@ -517,7 +517,7 @@ effectArea(1)[[1]]
 
 ##From below, standard error on difference in percent change is 0.1247279
 #So the p-value on the difference is  0.1793802
-(1 - pt((0.4896762 - 0.3222048) / 0.1247279, df = jvdf))*2
+hetero_area_pval <- (1 - pt((0.4896762 - 0.3222048) / 0.1247279, df = jvdf))*2; save(hetero_area_pval, file = "Output/TempData/appendix_D.A_hetero_area_pval.Rdata") 
 
 
 
@@ -776,7 +776,7 @@ rm(totperse, mycoefs, mybigvcov, myjuv1, juv0, i, chjuvsoutside,
   
   ##From below, se difference in percent change is 0.2436839
   #So the p-value on the difference is 0.5515637
-  (1 - pt((0.59619 - 0.4510943) / 0.2436839, df = jvdf))*2
+  hetero_days_pval <- (1 - pt((0.59619 - 0.4510943) / 0.2436839, df = jvdf))*2; save(hetero_days_pval, file = "Output/TempData/appendix_D.A_hetero_days_pval.Rdata") 
   
   
 
@@ -879,7 +879,5 @@ rm(totperse, mycoefs, mybigvcov, myjuv1, juv0, i, chjuvsoutside,
                                              x37+x38+x39+x40+x41+x42+x43+x44+x45+x46+
                                              x47+x48+x49+x50+x51+x52+x53+x54+x55+x56+x57+
                                              x58+x59+x60)*scaleconstant + chjuvsoutside) / 
-                                juv0, togcoefs, togvcov, ses=T))
-  
-  #0.2436839
+                                juv0, togcoefs, togvcov, ses=T)) #0.2436839 - used for calculating above p-value
 }
