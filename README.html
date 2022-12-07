@@ -537,9 +537,10 @@ automatically install all of them.</p>
 <p>-OS: I used Windows 10. Other versions of Windows, as well as Mac and
 Linux, should work too.</p>
 <p>-CPU: I have Intel(R) Xeon(R) Gold 6132 CPUE @ 2.60GHz 2.60 GHz (2
-processors). This is the equivalent of 16 cores. If you have fewer than
-16 cores, you will still be able to run the scripts, but your runtime
-will be longer.</p>
+processors). This is the equivalent of 16 cores. Some scripts hard-code
+parallel processing by specifying the number of cores to use. If you
+have fewer than 16 cores, calls like this will use all of your cores,
+and your runtime will be longer than the estimates provided here.</p>
 </div>
 <div id="controlled-randomness" class="section level3">
 <h3>Controlled Randomness</h3>
@@ -615,6 +616,10 @@ effect of the policy on exports.</p>
 </div>
 <div id="instructions-to-replicators" class="section level2">
 <h2>Instructions to Replicators</h2>
+<p>Some scripts hard-code parallel processing by specifying the number
+of cores to use. If you have fewer than 16 cores, calls like this will
+use all of your cores, and your runtime will be longer than the
+estimates provided here.</p>
 <div id="downloading-and-opening-the-replication-files" class="section level3">
 <h3>Downloading and opening the replication files</h3>
 <p>If you are cloning the repository from Github (<a href="https://github.com/englander/replication_closures" class="uri">https://github.com/englander/replication_closures</a>), open
@@ -972,20 +977,13 @@ level</td>
 <td>p-value on heterogeneous treatment effect by closure length</td>
 </tr>
 <tr class="even">
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr class="odd">
 <td>78%</td>
 <td>other_empirics/appendix_D2_firmsize.R</td>
 <td>403</td>
 <td>TempData/appendix_D2_largefirmeffect.Rdata</td>
 <td>% of treatment effect from large-firm vessels</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>70%</td>
 <td>other_empirics/appendix_D2_firmsize.R</td>
 <td>414</td>
@@ -993,14 +991,14 @@ level</td>
 <td>% of juveniles caught by large-firm vessels, as well as fraction
 caught by medium-firm and singleton vessels</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td></td>
 <td></td>
 <td></td>
 <td></td>
 <td></td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>0.0005</td>
 <td>other_empirics/appendix_D2_mediumvesselsonly.R</td>
 <td>407</td>
@@ -1008,14 +1006,14 @@ caught by medium-firm and singleton vessels</td>
 <td>p-value on heterogeneous treatment effect by vessel length, among
 medium-firm vessels only</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>83%</td>
 <td>other_empirics/appendix_D2_vesselsize.R</td>
 <td>395</td>
 <td>TempData/appendix_D2_above_med_length_vessel_juv_frac.Rdata</td>
 <td>fraction of juvenile catch from above-median length vessels</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>-52%</td>
 <td>other_empirics/discussion_alternative_policy.R</td>
 <td>139</td>
@@ -1023,14 +1021,14 @@ medium-firm vessels only</td>
 <td>change in juvenile catch from replacing closures policy with an
 alternative</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>$75 million</td>
 <td>other_empirics/discussion_exports.R</td>
 <td>162</td>
 <td>TempData/change_tons_exports.Rdata</td>
 <td>change in exports due to policy</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td></td>
 <td></td>
 <td></td>

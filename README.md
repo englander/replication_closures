@@ -57,7 +57,7 @@ You may also need to install Rtools 4.0: https://cran.r-project.org/bin/windows/
 
 -OS: I used Windows 10. Other versions of Windows, as well as Mac and Linux, should work too. 
 
--CPU: I have Intel(R) Xeon(R) Gold 6132 CPUE @ 2.60GHz 2.60 GHz (2 processors). This is the equivalent of 16 cores. If you have fewer than 16 cores, you will still be able to run the scripts, but your runtime will be longer.
+-CPU: I have Intel(R) Xeon(R) Gold 6132 CPUE @ 2.60GHz 2.60 GHz (2 processors). This is the equivalent of 16 cores. Some scripts hard-code parallel processing by specifying the number of cores to use. If you have fewer than 16 cores, calls like this will use all of your cores, and your runtime will be longer than the estimates provided here.
 
 ### Controlled Randomness
 
@@ -112,6 +112,8 @@ You may also need to install Rtools 4.0: https://cran.r-project.org/bin/windows/
 
 
 ## Instructions to Replicators
+
+Some scripts hard-code parallel processing by specifying the number of cores to use. If you have fewer than 16 cores, calls like this will use all of your cores, and your runtime will be longer than the estimates provided here.
 
 ### Downloading and opening the replication files
 
@@ -181,7 +183,6 @@ Files in Scripts/other_empirics folder contain calculations that are described i
 | 5.7%         | other_empirics/appendix_C_robustness_length_distribution_imputation.R    | 3245            | TempData/appendix_C_onebyone_totperse.Rdata  | standard error on total percent change in juvenile catch when I impute length distribution at one-week-of-sample by one-degree grid cell level ||
 |  0.18         | other_empirics/appendix_D1.R    | 520            | TempData/appendix_D1_hetero_area_pval.Rdata |             p-value on heterogeneous treatment effect by closure area      ||
 |  0.55         | other_empirics/appendix_D1.R    | 779            | TempData/appendix_D1_hetero_days_pval.Rdata |             p-value on heterogeneous treatment effect by closure length      ||
-           ||
 |  78%         | other_empirics/appendix_D2_firmsize.R    | 403            | TempData/appendix_D2_largefirmeffect.Rdata |             % of treatment effect from large-firm vessels      ||
 |  70%         | other_empirics/appendix_D2_firmsize.R    | 414            | TempData/appendix_D2_appendix_D2_juv_catch_fraction_by_firm_size.Rdata |             % of juveniles caught by large-firm vessels, as well as fraction caught by medium-firm and singleton vessels      ||
            ||
