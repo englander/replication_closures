@@ -3234,7 +3234,7 @@ plan(multisession, workers = 6)
                                          x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                                          x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
                                      1000, mycoefs, mybigvcov, ses=T))
-  #5.371539, compared to 5.436238
+  save(changebillionsse, file = "Output/TempData/appendix_C_onebyone_changebillionsse.Rdata") #5.371539, compared to 5.436238 in main specification
   
   #Now get SE on total percentage change
   (totperse <- deltamethod(~ ((x1 + x2 + x3 + x4 + x5 + x6 + x7 + x8 + x9 + x10 + 
@@ -3242,7 +3242,7 @@ plan(multisession, workers = 6)
                                  x21 + x22 + x23 + x24 + x25 + x26 + x27 + x28 + x29 +x30 + 
                                  x31 + x32 + x33 + x34 + x35 + x36) + chjuvsoutside) / 
                              juv0, mycoefs, mybigvcov, ses=T))
-  #0.05683242, compared to 0.05711567
+  save(totperse, file = "Output/TempData/appendix_C_onebyone_totperse.Rdata") #0.05683242, compared to 0.05711567
   
   
 }
