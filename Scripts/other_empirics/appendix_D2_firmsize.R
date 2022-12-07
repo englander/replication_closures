@@ -399,19 +399,19 @@ effectLength("singleton")
 # fleettype chmjuvsstart     totper
 # 1 singleton     919.2332 0.09306959
 
-#Top 7 firms account for % of effect
-36997.85 / (36997.85 +9568.206 + 919.2332)
+#Top 7 firms account for 78% of effect
+largefirmeffect <- 36997.85 / (36997.85 +9568.206 + 919.2332); save(largefirmeffect, file = 'Output/TempData/appendix_D2_largefirmeffect.Rdata')
 
-#Medium firms account for %
+#Medium firms account for % of effect. This number not reported in paper.
 9568.206/ (36997.85 +9568.206 + 919.2332)
 
-#Singletons account for %
+#Singletons account for % of effect. This number not reported in paper.
 919.2332 / (36997.85 +9568.206 + 919.2332)
 
 #What percent of juvenile catch does each group account for?
-group_by(fullbe, fleettype) %>% 
+firmjuvfrac <- group_by(fullbe, fleettype) %>% 
   summarise(mjuv = sum(numjuv, na.rm=T) / 10^6) %>% ungroup() %>%
-  mutate(percent = mjuv / sum(mjuv))
+  mutate(percent = mjuv / sum(mjuv)); save(firmjuvfrac, file = 'Output/TempData/appendix_D2_juv_catch_fraction_by_firm_size.Rdata')
 # fleettype   mjuv percent
 # <chr>      <dbl>   <dbl>
 #   1 large     97877.  0.695 
