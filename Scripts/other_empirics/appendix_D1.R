@@ -879,5 +879,5 @@ rm(totperse, mycoefs, mybigvcov, myjuv1, juv0, i, chjuvsoutside,
                                              x37+x38+x39+x40+x41+x42+x43+x44+x45+x46+
                                              x47+x48+x49+x50+x51+x52+x53+x54+x55+x56+x57+
                                              x58+x59+x60)*scaleconstant + chjuvsoutside) / 
-                                juv0, togcoefs, togvcov, ses=T)) #0.2436839 - used for calculating above p-value
+                                juv0, togcoefs, togvcov, ses=T)) #0.2436839 - used for calculating above p-value, but not otherwise reported in appendix
 }
