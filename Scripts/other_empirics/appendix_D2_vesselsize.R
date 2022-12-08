@@ -396,8 +396,8 @@ above_med_length_vessel_juv_frac <- (sum(heterodf$numjuv[heterodf$abovemedian==1
 
 #Cannot separate vessel size from fleet size because large vessels are owned by large firms
 #e.g. 96% of vessels owned by top 7 firms are above median length
-filter(owndf, Temporada=="2019-I") %>% 
+fraclarge <- filter(owndf, Temporada=="2019-I") %>% 
   filter(numowned > 11) %>% 
   filter(eslora > 27.7) %>% nrow() / 
   filter(owndf, Temporada=="2019-I") %>% 
-  filter(numowned > 11) %>% nrow()
+  filter(numowned > 11) %>% nrow(); save(fraclarge, file = 'Output/TempData/appendix_D2_frac_above_length_vessels_owned_large_firms.Rdata')
