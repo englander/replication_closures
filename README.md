@@ -1,8 +1,3 @@
----
-output:
-  html_document: default
-  pdf_document: default
----
 # Data and Code for "Information and Spillovers from Targeting Policy in Peru's Anchoveta Fishery"
 
 Gabriel Englander. American Economic Journal: Economic Policy.
