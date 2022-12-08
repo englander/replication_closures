@@ -384,11 +384,11 @@ effectLength(0)
 # 1           0     4419.721 0.2303643
 
 #So above median vessels account for 91% of effect
-effectLength(1) %>% dplyr::select(chmjuvsstart) %>% as.matrix() %>% as.numeric() / 
+abovemedeffect <- effectLength(1) %>% dplyr::select(chmjuvsstart) %>% as.matrix() %>% as.numeric() / 
   (
     effectLength(1) %>% dplyr::select(chmjuvsstart) %>% as.matrix() %>% as.numeric() + 
       effectLength(0) %>% dplyr::select(chmjuvsstart) %>% as.matrix() %>% as.numeric()
-  )
+  ); save(abovemedeffect, file = 'Output/TempData/appendix_D2_above_med_length_vessel_frac_effect.Rdata')
 
 #What percent of juveniles are caught by above median vessels? 
 above_med_length_vessel_juv_frac <- (sum(heterodf$numjuv[heterodf$abovemedian==1], na.rm=T) / 

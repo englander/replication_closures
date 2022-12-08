@@ -3224,8 +3224,8 @@ plan(multisession, workers = 6)
   #chmjuvsstart = juv(1) - juv(0)
   juv0 <- juv1 - chmjuvsstart 
   
-  #Then increase in juvenile catch as a percentage is 
-  chmjuvsstart / juv0 #0.4906038, compared to 0.4786111
+  #Then increase in juvenile catch as a percentage is 0.4906038, compared to 0.4786111 for main specification
+  totperchange <- chmjuvsstart / juv0; save(totperchange, file = "Output/TempData/appendix_C_onebyone_totperjuvchange.Rdata")
   
   #Calculate standard error on total change in juvenile catch and in total percentage change
   mycoefs <- toteffect_juv$chmjuv_scaled
