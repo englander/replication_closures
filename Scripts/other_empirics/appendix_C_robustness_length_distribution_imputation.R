@@ -1038,6 +1038,14 @@
   #Peru time
   Sys.setenv(TZ='America/Lima')
   
+  #Given length in cm, return weight in g
+  #Use values from IMARPE (2019)
+  lengthweight <- function(length){
+    #length in cm; weight in g
+    weight <- .0036*length^3.238
+    return(weight)
+  }
+  
   #Created in impute_size_be*.R
   load("Output/TempData/pbe_imp_uncorrected_onebyone.Rdata")
   
@@ -2881,8 +2889,6 @@
   }
   
   #Apply over all rows
-  (myCores <- detectCores())
-  
 plan(multisession, workers = 6)
   
   #Apply over rows of rddf
@@ -2893,9 +2899,6 @@ plan(multisession, workers = 6)
                             outcomesFun(x)
                             
                           })
-  
-  stopCluster(cl)
-  rm(cl, myCores)
   
   myoutcomes <- bind_rows(myoutcomes)
   
