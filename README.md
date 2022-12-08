@@ -192,7 +192,7 @@ Files in Scripts/other_empirics folder contain calculations that are described i
 |  96%         | other_empirics/appendix_D2_vesselsize.R    | 403            | TempData/appendix_D2_frac_above_length_vessels_owned_large_firms.Rdata | 96% of vessels owned by top 7 firms are above median length      ||
 |  -52%         | other_empirics/discussion_alternative_policy.R    | 139            | TempData/change_juv_catch_alternative_policy.Rdata | change in juvenile catch from replacing closures policy with an alternative      ||
 |  $75 million        | other_empirics/discussion_exports.R    | 162            | TempData/change_tons_exports.Rdata | change in exports due to policy      ||
-           ||
+
 
 
 ## References
