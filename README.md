@@ -186,13 +186,12 @@ Files in Scripts/other_empirics folder contain calculations that are described i
 |  0.55         | other_empirics/appendix_D1.R    | 779            | TempData/appendix_D1_hetero_days_pval.Rdata |             p-value on heterogeneous treatment effect by closure length      ||
 |  78%         | other_empirics/appendix_D2_firmsize.R    | 403            | TempData/appendix_D2_largefirmeffect.Rdata |             % of treatment effect from large-firm vessels      ||
 |  70%         | other_empirics/appendix_D2_firmsize.R    | 414            | TempData/appendix_D2_appendix_D2_juv_catch_fraction_by_firm_size.Rdata | % of juveniles caught by large-firm vessels, as well as fraction caught by medium-firm and singleton vessels      ||
-|  70%         | other_empirics/appendix_D2_firmsize.R    | 414            | TempData/appendix_D2_appendix_D2_juv_catch_fraction_by_firm_size.Rdata | % of juveniles caught by large-firm vessels, as well as fraction caught by medium-firm and singleton vessels      ||
 |  0.0005     | other_empirics/appendix_D2_mediumvesselsonly.R    | 407            | TempData/appendix_D2_mediumvesselsonly_pval.Rdata | p-value on heterogeneous treatment effect by vessel length, among medium-firm vessels only   ||
-                                 |  91%         | other_empirics/appendix_D2_vesselsize.R    | 391            | TempData/appendix_D2_above_med_length_vessel_frac_effect.Rdata | fraction of treatment effect that above-median length vessels account for      ||
-                      |  83%         | other_empirics/appendix_D2_vesselsize.R    | 395            | TempData/appendix_D2_above_med_length_vessel_juv_frac.Rdata | fraction of juvenile catch from above-median length vessels      ||
-                                                       |  96%         | other_empirics/appendix_D2_vesselsize.R    | 403            | TempData/appendix_D2_frac_above_length_vessels_owned_large_firms.Rdata | 96% of vessels owned by top 7 firms are above median length      ||
-                                            |  -52%         | other_empirics/discussion_alternative_policy.R    | 139            | TempData/change_juv_catch_alternative_policy.Rdata | change in juvenile catch from replacing closures policy with an alternative      ||
-                                                                                        |  $75 million        | other_empirics/discussion_exports.R    | 162            | TempData/change_tons_exports.Rdata | change in exports due to policy      ||
+|  91%         | other_empirics/appendix_D2_vesselsize.R    | 391            | TempData/appendix_D2_above_med_length_vessel_frac_effect.Rdata | fraction of treatment effect that above-median length vessels account for      ||
+|  83%         | other_empirics/appendix_D2_vesselsize.R    | 395            | TempData/appendix_D2_above_med_length_vessel_juv_frac.Rdata | fraction of juvenile catch from above-median length vessels      ||
+|  96%         | other_empirics/appendix_D2_vesselsize.R    | 403            | TempData/appendix_D2_frac_above_length_vessels_owned_large_firms.Rdata | 96% of vessels owned by top 7 firms are above median length      ||
+|  -52%         | other_empirics/discussion_alternative_policy.R    | 139            | TempData/change_juv_catch_alternative_policy.Rdata | change in juvenile catch from replacing closures policy with an alternative      ||
+|  $75 million        | other_empirics/discussion_exports.R    | 162            | TempData/change_tons_exports.Rdata | change in exports due to policy      ||
            ||
 
 
