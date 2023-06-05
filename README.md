@@ -16,7 +16,7 @@ The paper uses public, non-confidential population-level length distribution dat
 
 ### Statement about Rights
 
-I certify that the author of the manuscript has legitimate access to and permission to use the data used in this manuscript.
+I certify that the author of the manuscript has documented permission to redistribute/publish the data contained within this replication package. Appropriate permissions are documented in the LICENSE.txt file.
 
 ## Dataset list
 
