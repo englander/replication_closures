@@ -1,0 +1,11 @@
+Note: See README for details regarding data files, and the paper for data citations.
+
+The paper uses public, non-confidential data from Peru's Ministerio de la Producción (PRODUCE). Permissions January to March, 2020.
+
+The paper uses public, non-confidential data from Sociedad Nacional de Pesquería (SNP). Permissions January to February, 2020.
+
+The paper uses public, non-confidential boundary data of Peru's Exclusive Economic Zone from the Flanders Marine Institute (Flanders Marine Institute, 2012). These data are licensed under CC-BY.
+
+The paper uses public, non-confidential population-level length distribution data from Peru's scientific agency (IMARPE, 2017). Permission December 2019.
+
+
