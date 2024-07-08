@@ -17,7 +17,7 @@ Sys.setenv(TZ='America/Lima')
 `%not in%` <- function (x, table) is.na(match(x, table, nomatch=NA_integer_))
 
 #Created regdf: actual closure-treatment bins binded with potential closure-treatment bins  
-source("Scripts/make_data/make_actualclosure_regressioncontrol.R")
+source("Scripts/make_data/6. make_actualclosure_regressioncontrol.R")
 
 #Created in 3. correct_be.R
 load("Output/Data/pbe_imp.Rdata")
